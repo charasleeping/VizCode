@@ -1,0 +1,6 @@
+{
+  "harness/moodle-fixture/moodle": {
+    "url": "https://github.com/moodle/moodle.git",
+    "commit": "215f44380bdc3ccf852a3a22e34f8423ff64033a"
+  }
+}

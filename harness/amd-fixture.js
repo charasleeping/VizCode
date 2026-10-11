@@ -1,0 +1,1 @@
+window.define = (dependencies, factory) => { window.adapter = factory(); };

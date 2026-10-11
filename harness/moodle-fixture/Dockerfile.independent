@@ -1,0 +1,7 @@
+FROM moodlehq/moodle-php-apache:8.3@sha256:501f19fa75ad3cdc8962f2a742f39d179b8aa8ffdc2ff233d8d27a32f14e0e05
+COPY harness/moodle-fixture/moodle /var/www/html
+COPY plugin/vizcode /var/www/html/question/type/vizcode
+COPY harness/moodle-fixture/vizcode-setup.php harness/moodle-fixture/vizcode-questions.xml /fixture/
+RUN mkdir -p /var/moodledata /var/moodleconfig && \
+	ln -s /var/moodleconfig/config.php /var/www/html/config.php && \
+	chown -R www-data:www-data /var/www/html /var/moodledata /var/moodleconfig

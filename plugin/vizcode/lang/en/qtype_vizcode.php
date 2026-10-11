@@ -1,0 +1,23 @@
+<?php
+$string['pluginname'] = 'VizCode';
+$string['pluginnameadding'] = 'Adding a VizCode question';
+$string['pluginnameediting'] = 'Editing a VizCode question';
+$string['pluginname_help'] = 'A Python programming question with local execution tracing and server-side Jobe grading.';
+$string['pluginnamesummary'] = 'Python questions with live traces and authoritative server-side tests.';
+$string['mode'] = 'Answer type';
+$string['program'] = 'Complete program';
+$string['function'] = 'Function definitions';
+$string['answer'] = 'Answer';
+$string['answerpreload'] = 'Initial source';
+$string['answerrequired'] = 'Enter your Python answer.';
+$string['testsjson'] = 'Server-side tests (JSON)';
+$string['testsjson_help'] = 'A JSON array of tests. Each test has expected (output), stdin (program input), code (function calls), and hidden (boolean, defaults to true). Hidden tests remain on the server. All tests must pass for full marks.';
+$string['invalidtests'] = 'Provide 1 to 20 tests with string expected, stdin and code values, and a boolean hidden flag.';
+$string['testsummary'] = '{$a->passed} of {$a->total} tests passed.';
+$string['gradingunavailable'] = 'Server grading is temporarily unavailable. Your answer has not been graded. Please retry.';
+$string['jobeurl'] = 'Jobe REST API URL';
+$string['jobeapikey'] = 'Jobe API key';
+$string['brokerurl'] = 'Isolated Python execution broker URL';
+$string['cachedef_grading'] = 'Short-lived authoritative grading results';
+$string['privacy:metadata:jobe'] = 'The institution-configured Jobe service executes submitted Python answers for grading.';
+$string['privacy:metadata:jobe:answer'] = 'The submitted answer source is sent to Jobe. Moodle core stores question attempts and submitted answers.';

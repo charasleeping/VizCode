@@ -1,0 +1,11 @@
+/harness/node_modules/
+/harness/test-results/
+/harness/playwright-report/
+/.venv/
+/harness/assets/
+/harness/moodle-fixture/moodle/
+/harness/moodle-fixture/.env
+/plugin/vizcode/frontend/node_modules/
+/dist/
+/plugin/vizcode/assets/
+/plugin/vizcode/execution-assets/

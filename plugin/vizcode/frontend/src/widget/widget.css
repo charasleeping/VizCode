@@ -1,0 +1,22 @@
+.vizcode-widget { color: #202523; background: #fff; font-family: "Trebuchet MS", sans-serif; width: 100%; max-width: 100%; box-sizing: border-box; }
+.vizcode-widget * { box-sizing: border-box; }
+.vizcode-steps { display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 4px 0; border-bottom: 1px solid #d4ded7; }
+.vizcode-steps button { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border: 1px solid #cbd6ce; border-radius: 4px; background: #fff; color: #126d52; cursor: pointer; }
+.vizcode-steps button svg { width: 17px; height: 17px; }
+.vizcode-steps button:disabled { opacity: .4; cursor: default; }
+.vizcode-steps input { flex: 1; min-width: 40px; max-width: 200px; accent-color: #126d52; }
+.vizcode-step-count { width: 76px; flex: 0 0 76px; font-size: 13px; text-align: center; }
+.vizcode-status { font-size: 12px; margin-left: auto; }
+.vizcode-workspace { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 1fr); gap: 12px; min-height: 300px; padding-top: 10px; }
+.vizcode-source { height: 300px; min-width: 0; border: 1px solid #cbd6ce; }
+.vizcode-trace { overflow: auto; min-width: 0; max-height: 450px; }
+.vizcode-trace .visualizer { width: 100%; }
+.vizcode-auxiliary { border-top: 1px solid #d4ded7; margin-top: 10px; padding-top: 8px; font-size: 13px; }
+.vizcode-auxiliary summary { cursor: pointer; padding: 4px 0; }
+.vizcode-scratch { height: 120px; border: 1px solid #cbd6ce; margin: 8px 0; }
+.vizcode-auxiliary label { display: block; }
+.vizcode-auxiliary textarea { display: block; width: 100%; height: 90px; margin-top: 4px; padding: 6px; font-family: Menlo, monospace; border: 1px solid #cbd6ce; }
+.vizcode-output { max-height: 180px; overflow: auto; margin: 0; padding: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: Menlo, monospace; }
+.vizcode-error { color: #a02d21; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vizcode-widget .curLineStepGutter:after { content: ">"; color: #126d52; font-weight: bold; }
+@media (max-width: 600px) { .vizcode-workspace { grid-template-columns: minmax(0, 1fr); } .vizcode-status { width: 100%; text-align: right; } .vizcode-steps { flex-wrap: wrap; } }

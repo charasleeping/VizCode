@@ -1,0 +1,33 @@
+name: vizcode-dev
+services:
+  database:
+    image: mariadb:10.11@sha256:7db29378d4fdab73f8123bbc2b48905c90d1a4b00cf848b028f1e81e623257f2
+    environment:
+      MARIADB_ROOT_PASSWORD: local-fixture-only
+      MARIADB_DATABASE: moodle
+      MARIADB_USER: moodle
+      MARIADB_PASSWORD: local-fixture-only
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 5s
+      retries: 20
+    volumes: [database:/var/lib/mysql]
+  jobe:
+    image: trampgeek/jobeinabox:latest@sha256:b442c8e63f016ff33aa2b6f28c36abc8ebd30cbb39e8e025cadeec2107c5ce85
+  moodle:
+    build:
+      context: ../..
+      dockerfile: harness/moodle-fixture/Dockerfile.independent
+    ports: ["127.0.0.1:4112:80"]
+    depends_on:
+      database: {condition: service_healthy}
+      jobe: {condition: service_started}
+    volumes: [moodledata:/var/moodledata, moodleconfig:/var/moodleconfig]
+volumes:
+  database:
+    name: ${VIZCODE_DATABASE_VOLUME:-vizcode-dev_database}
+  moodledata:
+    name: ${VIZCODE_MOODLEDATA_VOLUME:-vizcode-dev_moodledata}
+  moodleconfig:
+    name: ${VIZCODE_CONFIG_VOLUME:-vizcode-dev_config}

@@ -1,0 +1,7 @@
+.git
+.venv
+harness/node_modules
+harness/test-results
+harness/playwright-report
+plugin/vizcode/frontend/node_modules
+dist
