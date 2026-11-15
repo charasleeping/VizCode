@@ -59,28 +59,49 @@ instructions if `brew` is unavailable in a new terminal.
 
 #### Windows — administrator PowerShell, then Ubuntu
 
-First run in PowerShell as administrator:
+First run in PowerShell as administrator. Check the available names instead of
+assuming that `Ubuntu-24.04` is recognized by every WSL installation. Prefer
+`Ubuntu-24.04` when listed; otherwise use an Ubuntu name actually shown in the
+NAME column. If Ubuntu is already installed, skip its installation and proceed
+to the second block.
 
 ```powershell
-wsl --install -d Ubuntu-24.04
+wsl --update
+wsl --list --online
+if ($LASTEXITCODE -ne 0) { throw "Cannot read the WSL distribution catalogue. Resolve that error first." }
+$distro = Read-Host "Enter the Ubuntu NAME shown above"
+if ([string]::IsNullOrWhiteSpace($distro)) { throw "A distribution name is required." }
+wsl --install -d $distro.Trim()
+if ($LASTEXITCODE -ne 0) { throw "WSL installation did not finish. Follow its restart/error instructions before continuing." }
 winget install --exact --id Docker.DockerDesktop
 ```
 
 Restart if requested, then run this second block in PowerShell under the same
-Windows account. It makes Ubuntu-24.04 your default WSL distribution (Docker
+Windows account. It lists installed distributions and makes your selected Ubuntu
+distribution the default (Docker
 normally integrates with the default distribution), starts Docker Desktop, and
 opens Ubuntu:
 
 ```powershell
+wsl --list --verbose
+if ($LASTEXITCODE -ne 0) { throw "Cannot list installed WSL distributions." }
+$distro = Read-Host "Enter the installed Ubuntu NAME shown above"
+$distro = $distro.Trim()
+$installed = @(wsl --list --quiet | ForEach-Object { $_.Replace("`0", "").Trim() })
+if ($LASTEXITCODE -ne 0 -or $distro -notin $installed) {
+  throw "That distribution is not installed under this Windows account. Use a NAME from wsl --list --verbose."
+}
 wsl --set-default-version 2
-wsl --set-default Ubuntu-24.04
+if ($LASTEXITCODE -ne 0) { throw "Cannot set WSL 2 as the default." }
+wsl --set-default $distro
+if ($LASTEXITCODE -ne 0) { throw "Cannot select the installed distribution." }
 $dockerDesktop = @(
   "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe",
   "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $dockerDesktop) { throw "Docker Desktop installation was not found." }
 Start-Process $dockerDesktop
-wsl -d Ubuntu-24.04
+wsl -d $distro
 ```
 
 Create the Ubuntu username/password when prompted on first launch, then paste
@@ -89,7 +110,15 @@ require first-launch agreement/setup prompts. A restart, account creation,
 GitHub authentication and firmware virtualization settings cannot all be
 reliably bypassed by commands. No Docker settings changes are normally needed
 on a fresh installation. Existing customized Docker installations may still
-need Settings → Resources → WSL Integration enabled for Ubuntu-24.04.
+need Settings → Resources → WSL Integration enabled for the selected distribution.
+If the VERSION column shows 1, convert that distribution to WSL 2 before using
+Docker; follow [Microsoft's WSL version instructions](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#set-wsl-version-to-1-or-2).
+
+“Invalid distribution name” during installation concerns the online catalogue;
+during `--set-default` or `-d`, it concerns distributions already installed for
+the current Windows account. These names may differ: an installed distribution
+can be named `Ubuntu` even when you expected `Ubuntu-24.04`. Do not unregister or
+reinstall an existing distribution merely to rename it.
 
 This uses Docker's documented [default-distribution integration](https://docs.docker.com/desktop/features/wsl/).
 Windows prerequisite commands are documented recipes, not a verified Windows
