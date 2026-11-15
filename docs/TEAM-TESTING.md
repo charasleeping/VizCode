@@ -57,74 +57,90 @@ For later sessions, run `export PATH="$(brew --prefix node@22)/bin:$PATH"`
 if Node.js 22 is not on your PATH. Follow Homebrew's printed shell-configuration
 instructions if `brew` is unavailable in a new terminal.
 
-#### Windows — administrator PowerShell, then Ubuntu
+#### Windows — three short stages
 
-First run in PowerShell as administrator. Check the available names instead of
-assuming that `Ubuntu-24.04` is recognized by every WSL installation. Prefer
-`Ubuntu-24.04` when listed; otherwise use an Ubuntu name actually shown in the
-NAME column. If Ubuntu is already installed, skip its installation and proceed
-to the second block.
+For a fresh setup, use these three stages. Skip software that is already
+installed. These Windows commands have not been tested on a fresh Windows
+computer.
+
+1. In administrator PowerShell, install Ubuntu and Docker Desktop:
 
 ```powershell
-wsl --update
-wsl --list --online
-if ($LASTEXITCODE -ne 0) { throw "Cannot read the WSL distribution catalogue. Resolve that error first." }
-$distro = Read-Host "Enter the Ubuntu NAME shown above"
-if ([string]::IsNullOrWhiteSpace($distro)) { throw "A distribution name is required." }
-wsl --install -d $distro.Trim()
-if ($LASTEXITCODE -ne 0) { throw "WSL installation did not finish. Follow its restart/error instructions before continuing." }
+wsl --install -d Ubuntu-24.04
 winget install --exact --id Docker.DockerDesktop
 ```
 
-Restart if requested, then run this second block in PowerShell under the same
-Windows account. It lists installed distributions and makes your selected Ubuntu
-distribution the default (Docker
-normally integrates with the default distribution), starts Docker Desktop, and
-opens Ubuntu:
+Complete installation and restart Windows if requested before continuing.
+
+2. In PowerShell under the same Windows account, select Ubuntu, start Docker,
+   and open the Ubuntu terminal:
 
 ```powershell
-wsl --list --verbose
-if ($LASTEXITCODE -ne 0) { throw "Cannot list installed WSL distributions." }
-$distro = Read-Host "Enter the installed Ubuntu NAME shown above"
-$distro = $distro.Trim()
-$installed = @(wsl --list --quiet | ForEach-Object { $_.Replace("`0", "").Trim() })
-if ($LASTEXITCODE -ne 0 -or $distro -notin $installed) {
-  throw "That distribution is not installed under this Windows account. Use a NAME from wsl --list --verbose."
-}
-wsl --set-default-version 2
-if ($LASTEXITCODE -ne 0) { throw "Cannot set WSL 2 as the default." }
-wsl --set-default $distro
-if ($LASTEXITCODE -ne 0) { throw "Cannot select the installed distribution." }
+wsl --set-default Ubuntu-24.04
 $dockerDesktop = @(
   "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe",
   "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $dockerDesktop) { throw "Docker Desktop installation was not found." }
+if (-not $dockerDesktop) { throw "Install Docker Desktop before continuing." }
 Start-Process $dockerDesktop
-wsl -d $distro
+wsl -d Ubuntu-24.04
 ```
 
-Create the Ubuntu username/password when prompted on first launch, then paste
-the Ubuntu/WSL block below into that Ubuntu terminal. Docker Desktop may still
-require first-launch agreement/setup prompts. A restart, account creation,
-GitHub authentication and firmware virtualization settings cannot all be
-reliably bypassed by commands. No Docker settings changes are normally needed
-on a fresh installation. Existing customized Docker installations may still
-need Settings → Resources → WSL Integration enabled for the selected distribution.
-If the VERSION column shows 1, convert that distribution to WSL 2 before using
-Docker; follow [Microsoft's WSL version instructions](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#set-wsl-version-to-1-or-2).
+Create your Ubuntu username/password when prompted. Complete Docker's first-launch
+prompts and wait until Docker is running. Selecting Ubuntu as the default normally
+enables [Docker's WSL integration](https://docs.docker.com/desktop/features/wsl/).
 
-“Invalid distribution name” during installation concerns the online catalogue;
-during `--set-default` or `-d`, it concerns distributions already installed for
-the current Windows account. These names may differ: an installed distribution
-can be named `Ubuntu` even when you expected `Ubuntu-24.04`. Do not unregister or
-reinstall an existing distribution merely to rename it.
+3. Paste this into Ubuntu, not PowerShell, to install the remaining tools and
+   start the demo. Run it from your Ubuntu home directory, not a Windows folder:
 
-This uses Docker's documented [default-distribution integration](https://docs.docker.com/desktop/features/wsl/).
-Windows prerequisite commands are documented recipes, not a verified Windows
-installation test.
+```sh
+bash <<'SETUP'
+set -e
+cd ~
+sudo apt-get update
+sudo apt-get install -y git curl ca-certificates python3 build-essential
+export NVM_DIR="$HOME/.nvm"
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+  git clone --branch v0.40.3 --depth 1 https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+fi
+. "$NVM_DIR/nvm.sh"
+nvm install 22
+docker info >/dev/null
+docker compose version
+git clone https://github.com/charasleeping/VizCode.git
+cd VizCode
+sh harness/demo.sh setup
+SETUP
+```
 
-#### Ubuntu 24.04 / Windows Ubuntu WSL — Bash
+Continue at [Try the features](#3-try-the-features) after setup finishes.
+For later sessions, use [Daily use](#daily-use); do not repeat installation.
+
+<details>
+<summary>Windows troubleshooting — only if a stage fails</summary>
+
+For an invalid distribution name, compare available and installed distributions:
+
+```powershell
+wsl --list --online
+wsl --list --verbose
+```
+
+Installation uses a NAME from the online list; selecting or launching uses a
+NAME from the installed list. If the installed name is `Ubuntu`, replace
+`Ubuntu-24.04` with `Ubuntu` in stage 2. If no distributions are installed,
+finish stage 1 first. Do not unregister an existing distribution to rename it.
+
+If WSL needs updating, run `wsl --update` and follow any restart instructions.
+If the installed distribution shows VERSION 1, follow
+[Microsoft's WSL 2 conversion instructions](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#set-wsl-version-to-1-or-2).
+If Docker cannot connect, check Docker Desktop → Settings → Resources → WSL
+Integration for the selected Ubuntu distribution. Existing Docker settings,
+GitHub authentication and firmware virtualization prompts may need attention.
+
+</details>
+
+#### Ubuntu 24.04 — native Linux
 
 This installs Node.js 22 using nvm. On native Ubuntu only, when Docker is absent,
 it uses Docker's development convenience installer and enables Docker access for
