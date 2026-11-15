@@ -15,6 +15,117 @@ need an existing Moodle site, a plugin release ZIP, or a host PHP/Java installat
 - The GitHub repository is private. Ask the repository owner for access, then use
   your own GitHub authentication. Do not share tokens or passwords in the project.
 
+### Copy-and-paste prerequisite installation
+
+Choose your operating system below. These commands install software on your
+computer and may request your administrator password. Complete installer prompts;
+Windows may require a restart. Repository access is still required.
+These recipes follow upstream installation instructions; they have not been
+verified on fresh machines for every platform.
+
+#### macOS — Terminal
+
+Install Homebrew if absent, then the tools. Docker Desktop includes Compose.
+
+```sh
+sudo -v
+/bin/bash <<'SETUP'
+set -e
+if ! command -v brew >/dev/null 2>&1; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+brew install git node@22 python
+if [ ! -d /Applications/Docker.app ]; then
+  brew install --cask docker-desktop
+fi
+export PATH="$(brew --prefix node@22)/bin:$PATH"
+open -a Docker
+printf 'Complete Docker Desktop setup. Waiting for Docker to become ready...\n'
+until docker info >/dev/null 2>&1; do sleep 3; done
+git clone https://github.com/charasleeping/VizCode.git
+cd VizCode
+sh harness/demo.sh setup
+SETUP
+```
+
+For later sessions, run `export PATH="$(brew --prefix node@22)/bin:$PATH"`
+if Node.js 22 is not on your PATH. Follow Homebrew's printed shell-configuration
+instructions if `brew` is unavailable in a new terminal.
+
+#### Windows — administrator PowerShell, then Ubuntu
+
+First run in PowerShell as administrator:
+
+```powershell
+wsl --install -d Ubuntu-24.04
+winget install --exact --id Docker.DockerDesktop
+```
+
+Restart if requested. Open Ubuntu once and create its Linux username/password.
+Open Docker Desktop, complete its setup, and enable Ubuntu under
+Settings → Resources → WSL Integration. Then paste the Ubuntu/WSL block below
+into Ubuntu, not PowerShell. Windows cannot reliably be installed and restarted
+in a single uninterrupted command block.
+
+#### Ubuntu 24.04 / Windows Ubuntu WSL — Bash
+
+This installs Node.js 22 using nvm. On native Ubuntu only, when Docker is absent,
+it uses Docker's development convenience installer and enables Docker access for
+your user. That access grants control of the local Docker engine.
+On WSL, enable Docker Desktop integration instead of installing another engine.
+
+```sh
+bash <<'SETUP'
+set -e
+sudo apt-get update
+sudo apt-get install -y git curl ca-certificates python3 build-essential
+export NVM_DIR="$HOME/.nvm"
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+  git clone --branch v0.40.3 --depth 1 https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+fi
+. "$NVM_DIR/nvm.sh"
+nvm install 22
+nvm use 22
+if grep -qi microsoft /proc/sys/kernel/osrelease; then
+  docker info >/dev/null 2>&1 || {
+    echo 'Start Docker Desktop and enable Ubuntu WSL integration, then rerun this block.'
+    exit 1
+  }
+else
+  if ! command -v docker >/dev/null 2>&1; then
+    curl -fsSL https://get.docker.com -o /tmp/vizcode-get-docker.sh
+    sudo sh /tmp/vizcode-get-docker.sh
+  fi
+  sudo systemctl start docker
+  if ! docker info >/dev/null 2>&1; then
+    sudo usermod -aG docker "$(id -un)"
+    echo 'Log out and back in, then rerun this block to activate Docker access.'
+    exit 0
+  fi
+fi
+docker compose version
+git clone https://github.com/charasleeping/VizCode.git
+cd VizCode
+sh harness/demo.sh setup
+SETUP
+```
+
+If a clone already exists, skip cloning and run `sh harness/demo.sh setup` inside
+that directory after activating Node.js 22. Do not run the entire installation
+block for everyday starts; use the Daily use commands below.
+
+Installation references: [Homebrew](https://brew.sh/),
+[Docker for macOS](https://docs.docker.com/desktop/setup/install/mac-install/),
+[Docker for Windows](https://docs.docker.com/desktop/setup/install/windows-install/),
+[WSL](https://learn.microsoft.com/en-us/windows/wsl/install),
+[nvm](https://github.com/nvm-sh/nvm), and
+[Docker for Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+
 ## 2. Start the demo
 
 ```sh

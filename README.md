@@ -31,7 +31,9 @@ UI plugin setting; keep the question's existing tests and grading template.
 
 For Agentic Coding groupmates, the demo sets up Moodle, CodeRunner, VizCode and
 sample questions on your own computer. Install Git, Node.js 22/npm, Python 3 and
-Docker with Compose; start Docker before running:
+Docker with Compose; start Docker before running. For a computer without these
+tools, use the [copy-and-paste installation blocks](docs/TEAM-TESTING.md#copy-and-paste-prerequisite-installation)
+for your operating system instead:
 
 ```sh
 git clone https://github.com/charasleeping/VizCode.git
