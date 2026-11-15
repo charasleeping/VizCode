@@ -92,3 +92,25 @@ test('Java console input pauses at the reached step and never submits Check',asy
  await expect(page.locator('.vizcode-status')).toHaveAttribute('aria-label','Ready',{timeout:90000});await finishTrace(page);await expect(page.locator('.vizcode-output')).toHaveText('42\n');expect(checks).toBe(0);
  await expect(page.getByRole('textbox',{name:'Answer source',exact:true})).toHaveText(source);
 });
+
+test('all three checked responses remain complete on the attempt summary',async({page})=>{
+ await attempt(page);
+ const sources=['def print_factorial(n):\n\n return 1 if n < 2 else n * print_factorial(n-1)',
+ 'int print_factorial(int n) {\n\n return n < 2 ? 1 : n * print_factorial(n-1); }',
+ 'static int print_factorial(int n) {\n\n return n < 2 ? 1 : n * print_factorial(n-1); }'];
+ const questions=page.locator('.que').filter({has:page.locator('[data-vizcode]')});
+ for(let i=0;i<3;i++){
+  const q=questions.nth(i);await q.getByRole('textbox',{name:'Answer source',exact:true}).fill(sources[i]);
+  const response=page.waitForResponse(r=>r.url().includes('local_vizcode_check'));
+  await q.locator('[name$="-submit"]').click();expect((await(await response).json())[0].error).not.toBe(true);
+  await expect(q.locator('.coderunner-test-results.good')).toBeVisible();
+ }
+ await page.getByRole('button',{name:/Finish attempt/}).click();
+ await expect(page).toHaveURL(/summary.php/);
+ await expect(page.locator('table tbody tr td:nth-child(2)')).toHaveText(['Correct','Correct','Correct']);
+ // Actual unchecked edits must still be reported as incomplete.
+ await page.getByRole('button',{name:'Return to attempt',exact:true}).click();
+ await page.locator('.que').filter({has:page.locator('[data-vizcode]')}).nth(1).getByRole('textbox',{name:'Answer source',exact:true}).fill('int print_factorial(int n) { return 0; }');
+ await page.getByRole('button',{name:/Finish attempt/}).click();
+ await expect(page.locator('table tbody tr td:nth-child(2)')).toHaveText(['Correct','Not complete','Correct']);
+});

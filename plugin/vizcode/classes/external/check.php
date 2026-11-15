@@ -35,6 +35,10 @@ class check extends \core_external\external_api {
             if ($qa->get_sequence_check_count()!==$sequence) throw new \invalid_parameter_exception('The question changed. Reload before checking.');
             $data=json_decode($response,true,16,JSON_THROW_ON_ERROR);
             if (!is_array($data) || !is_string($data['answer'] ?? null) || strlen($data['answer'])>100000) throw new \invalid_parameter_exception('Invalid answer.');
+            // HTML form submissions serialize textarea line endings as CRLF.
+            // Match that representation so navigation/autosave does not turn a
+            // checked answer into an apparently changed, incomplete response.
+            $data['answer']=preg_replace('/\r\n?|\n/',"\r\n",$data['answer']);
             $expected=$qa->get_question()->get_expected_data();
             $native=array_intersect_key($data,$expected);$native[$action==='check'?'-submit':'-precheck']=1;
             $transaction=$DB->start_delegated_transaction();

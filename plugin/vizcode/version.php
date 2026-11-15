@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 defined('MOODLE_INTERNAL') || die();
 $plugin->component = 'local_vizcode';
-$plugin->version = 2026111401;
+$plugin->version = 2026111600;
 $plugin->requires = 2024100700;
 $plugin->supported = [405,405];
 $plugin->maturity = MATURITY_BETA;
