@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "coderunner": 2026110201,
+  "behaviour": 2026092401,
+  "patches": [
+    {
+      "path": "question/type/coderunner/question.php",
+      "sha256": "38ce98a5ac37cbab50dd749bcbc078b07b707cedc970716f350814f0f822c0a2",
+      "patched_sha256": "5c48136292a24d3179427dcedc132cf6d12e55dcdc16167c17f6faa2ab7be8a9",
+      "replacements": [
+        [
+          "    public function grade_response(array $response, bool $isprecheck = false, $isvalidationrun = false, $usecache = true) {",
+          "    public function grade_response(array $response, bool $isprecheck = false, $isvalidationrun = false, $usecache = true) {\n        $previous = $GLOBALS['local_vizcode_active'] ?? false;\n        $GLOBALS['local_vizcode_active'] = class_exists('\\local_vizcode\\integration') && \\local_vizcode\\integration::enabled($this);\n        try { return $this->vizcode_original_grade_response($response, $isprecheck, $isvalidationrun, $usecache); }\n        finally { $GLOBALS['local_vizcode_active'] = $previous; }\n    }\n    private function vizcode_original_grade_response(array $response, bool $isprecheck = false, $isvalidationrun = false, $usecache = true) {"
+        ]
+      ]
+    },
+    {
+      "path": "question/type/coderunner/renderer.php",
+      "sha256": "ee16314db0138ec54236de5304e7dbed6aa73ea61bca5c32ad2109d566f0b665",
+      "patched_sha256": "cc770c2c2b35ce890dc3e893bbef77792de089c461a10a0ca7d32958914d064c",
+      "replacements": [
+        [
+          "        $qtext .= html_writer::tag('textarea', s($currentanswer), $taattributes);",
+          "        if (class_exists('\\local_vizcode\\integration') && \\local_vizcode\\integration::enabled($question)) {\n            $taattributes['data-vizcode'] = \\local_vizcode\\integration::configuration($qa, $options);\n        }\n        $qtext .= html_writer::tag('textarea', s($currentanswer), $taattributes);"
+        ],
+        [
+          "        return format_text($fb, FORMAT_HTML, $formatoptions);",
+          "        $formatted = format_text($fb, FORMAT_HTML, $formatoptions);\n        if (class_exists('\\local_vizcode\\integration') && \\local_vizcode\\integration::enabled($q)) return \\local_vizcode\\integration::feedback($qa, $formatted);\n        return $formatted;"
+        ]
+      ]
+    },
+    {
+      "path": "question/type/coderunner/classes/jobesandbox.php",
+      "sha256": "76255d34e075e506ecf17dbb9961b7ffcccf8e9a33a638236f71f695bd151e86",
+      "patched_sha256": "87ac2d1261a349167717d268dc04042d39e78496ca47c61727f5dafd16296b90",
+      "replacements": [
+        [
+          "            $runresult = $cache->get($key);  // Unserializes the returned value :) false if not found.",
+          "            $runresult = $cache->get($key);  // Unserializes the returned value :) false if not found.\n            if (!empty($GLOBALS['local_vizcode_active']) && $runresult && \\local_vizcode\\compiler_recovery::is_crash([\n                    'outcome' => $runresult['result'] ?? null, 'cmpinfo' => $runresult['cmpinfo'] ?? ''])) {\n                $cache->delete($key); $runresult = false;\n            }"
+        ],
+        [
+          "        $this->response = $response;\n        return $returncode;",
+          "        if (!empty($GLOBALS['local_vizcode_active']) && $returncode === 200 && is_object($response)) {\n            $response = (object)\\local_vizcode\\compiler_recovery::execute(function() use (&$response, &$returncode, $job, $curl) {\n                if ($response !== null) { $value = (array)$response; $response = null; return $value; }\n                [$returncode, $again] = $this->http_request('runs', self::HTTP_POST, $job, $curl);\n                if ($returncode !== 200 || !is_object($again)) throw new moodle_exception('gradingunavailable', 'local_vizcode');\n                return (array)$again;\n            });\n        }\n        $this->response = $response;\n        return $returncode;"
+        ],
+        [
+          "                $runresult['cmpinfo'] = $this->response->cmpinfo;",
+          "                $runresult['cmpinfo'] = $this->response->cmpinfo;\n                foreach (['runtime_ms', 'memory_mb'] as $metric) {\n                    if (isset($this->response->$metric)) $runresult[$metric] = $this->response->$metric;\n                }"
+        ],
+        [
+          "        return (object) $runresult;",
+          "        if (!empty($GLOBALS['local_vizcode_active'])) \\local_vizcode\\integration::measurement((object)$runresult);\n        return (object) $runresult;"
+        ]
+      ]
+    },
+    {
+      "path": "question/behaviour/adaptive_adapted_for_coderunner/behaviour.php",
+      "sha256": "72ea655f11e3e45fd2d5fd247c717051ac437d37a867371b162cb7acb6142a39",
+      "patched_sha256": "f0b7f303186cd50e3de5987a110d8f7439d41e621b51a01f683ae52b569b84ce",
+      "replacements": [
+        [
+          "class qbehaviour_adaptive_adapted_for_coderunner extends qbehaviour_adaptive {",
+          "class qbehaviour_adaptive_adapted_for_coderunner_base extends qbehaviour_adaptive {"
+        ],
+        [
+          "\n}\n",
+          "\n}\n\n// VizCode bridge: optional response recording; scoring stays in the native base.\nif (class_exists('\\local_vizcode\\best_behaviour')) {\n    class qbehaviour_adaptive_adapted_for_coderunner extends \\local_vizcode\\best_behaviour {}\n} else {\n    class qbehaviour_adaptive_adapted_for_coderunner extends qbehaviour_adaptive_adapted_for_coderunner_base {}\n}\n"
+        ]
+      ]
+    }
+  ],
+  "additions": [
+    {
+      "path": "question/type/coderunner/amd/src/ui_vizcode.js",
+      "content": "define(['local_vizcode/ui'], function(UI) { return UI; });\n"
+    },
+    {
+      "path": "question/type/coderunner/amd/build/ui_vizcode.min.js",
+      "content": "define(\"qtype_coderunner/ui_vizcode\",['local_vizcode/ui'], function(UI) { return UI; });\n"
+    },
+    {
+      "path": "question/type/coderunner/amd/src/ui_vizcode.json",
+      "content": "{\n  \"description\": \"VizCode editor and debugger\",\n  \"parameters\": {}\n}\n"
+    }
+  ]
+}

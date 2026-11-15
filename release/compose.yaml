@@ -1,0 +1,37 @@
+name: vizcode
+services:
+  grader:
+    build: ./grader
+    ports: ["127.0.0.1:4114:80"]
+    profiles: [grader]
+    restart: unless-stopped
+  java-job:
+    build: {context: ./java, dockerfile: Dockerfile.job}
+    image: vizcode-java-job:21
+    profiles: [build]
+  java-supervisor:
+    build: {context: ./java, dockerfile: Dockerfile.supervisor}
+    environment:
+      VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set a supervisor secret}
+    volumes: ["${VIZCODE_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:4103/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  execution:
+    build: ./execution
+    environment:
+      VIZCODE_FRAME_ANCESTORS: ${VIZCODE_MOODLE_ORIGIN:?Set the Moodle origin}
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing secret}
+      VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set a supervisor secret}
+    ports: ["127.0.0.1:4102:4101"]
+    depends_on:
+      java-supervisor: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:4101/live/broker.html').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

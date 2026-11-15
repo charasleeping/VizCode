@@ -1,0 +1,14 @@
+.git
+**/.git
+**/node_modules
+**/__pycache__
+**/.DS_Store
+dist/*
+!dist/vizcode.zip
+output
+tmp
+harness/test-results
+harness/playwright-report
+harness/packages
+**/.env
+**/.env.*

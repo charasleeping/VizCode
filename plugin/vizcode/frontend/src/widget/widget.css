@@ -1,0 +1,80 @@
+.vizcode-widget { color: #202523; background: #fff; font-family: "Trebuchet MS", sans-serif; width: 100%; max-width: 100%; box-sizing: border-box; }
+.vizcode-widget * { box-sizing: border-box; }
+.vizcode-steps { display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 4px 0; border-bottom: 1px solid #d4ded7; }
+.vizcode-steps button { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border: 1px solid #cbd6ce; border-radius: 4px; background: #fff; color: #126d52; cursor: pointer; }
+.vizcode-steps button svg { width: 17px; height: 17px; }
+.vizcode-steps button:disabled { opacity: .4; cursor: default; }
+.vizcode-steps input { flex: 1; min-width: 40px; max-width: 200px; accent-color: #126d52; }
+.vizcode-step-count { width: 76px; flex: 0 0 76px; font-size: 13px; text-align: center; }
+.vizcode-status { font-size: 12px; margin-left: auto; }
+.vizcode-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-height: 300px; padding-top: 10px; }
+.vizcode-source { height: 300px; min-width: 0; border: 1px solid #cbd6ce; }
+.vizcode-trace { overflow: auto; min-width: 0; max-height: 450px; }
+.vizcode-trace .visualizer { width: 100%; }
+.vizcode-auxiliary { border-top: 1px solid #d4ded7; margin-top: 10px; padding-top: 8px; font-size: 13px; }
+.vizcode-auxiliary summary { cursor: pointer; padding: 4px 0; }
+.vizcode-scratch { height: 120px; border: 1px solid #cbd6ce; margin: 8px 0; }
+.vizcode-auxiliary label { display: block; }
+.vizcode-auxiliary textarea { display: block; width: 100%; height: 90px; margin-top: 4px; padding: 6px; font-family: Menlo, monospace; border: 1px solid #cbd6ce; }
+.vizcode-output { max-height: 180px; overflow: auto; margin: 0; padding: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: Menlo, monospace; }
+.vizcode-error { color: #a02d21; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vizcode-widget .curLineStepGutter:after { content: ">"; color: #126d52; font-weight: bold; }
+@media (max-width: 600px) { .vizcode-workspace { grid-template-columns: minmax(0, 1fr); } .vizcode-status { width: 100%; text-align: right; } .vizcode-steps { flex-wrap: wrap; } }
+.vizcode-package-notice:empty { display:none; }
+.vizcode-package-notice { margin:8px 0; color:#46554e; font-size:13px; }
+
+.vizcode-scratch .cm-gutters { background:#e5edf8 !important; color:#294b72 !important; }
+.vizcode-scratch .cm-activeLineGutter { background:#cfddf0 !important; }
+.vizcode-input-request { padding:12px; margin:8px 0; background:#edf4f9; border:1px solid #c3d6e4; }
+.vizcode-input-request[hidden],.vizcode-input-history[hidden] { display:none; }
+.vizcode-input-request label,.vizcode-input-history label { display:block; }
+.vizcode-input-request input,.vizcode-input-request textarea,.vizcode-input-history textarea { display:block; width:100%; max-width:100%; margin:6px 0; font:14px/1.5 Menlo,monospace; }
+.vizcode-input-request [hidden] { display:none; }
+.vizcode-input-request button,.vizcode-input-history button { margin:4px 8px 4px 0; }
+.vizcode-input-history { border-top:1px solid #d4ded7; padding:8px 0; }
+
+.vizcode-input-row { display:flex; align-items:flex-end; gap:8px; }
+.vizcode-input-row textarea { flex:1; min-width:0; resize:none; margin:0; padding:8px; }
+.vizcode-input-row .vizcode-send-input { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; margin:0; border:1px solid #126d52; border-radius:8px; background:#126d52; color:white; }
+.vizcode-send-input svg { width:20px; height:20px; }
+
+.vizcode-sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.vizcode-status-ready svg { width:20px; height:20px; color:#358552; }
+.vizcode-status-loading::after { content:''; display:block; width:16px; height:16px; border:1.5px solid #cbd6ce; border-top-color:#358552; border-radius:50%; animation:vizcode-status-spin .8s linear infinite; }
+@keyframes vizcode-status-spin { to {transform:rotate(360deg);} }
+.vizcode-functions { margin:10px 0; }
+.vizcode-function-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #d4ded7; }
+.vizcode-function-row label { display:flex; gap:6px; align-items:center; margin:0; }
+.vizcode-function-row input[type=text] { width:120px; max-width:100%; padding:4px 6px; }
+.vizcode-function-handle { border:0; background:transparent; color:#46554e; cursor:grab; touch-action:none; }
+.vizcode-function-active { background:#e5f3e9; }
+.vizcode-functions p,.vizcode-functions small { font-size:12px; color:#46554e; }
+.vizcode-error pre { white-space:pre-wrap; font-size:12px; }
+@media(prefers-reduced-motion:reduce){.vizcode-status-loading::after {animation:none;} }
+
+/* Keep legacy jsPlumb canvases in the same coordinate system as their anchors. */
+.vizcode-trace #vizLayoutTdSecond { position:relative; }
+
+.vizcode-status { margin-right:10px; }
+.vizcode-status-error svg { width:20px; height:20px; color:#b3261e; }
+.vizcode-error:not(:empty) { display:flex; align-items:flex-start; gap:7px; margin:8px 0; }
+.vizcode-error>svg { width:20px; height:20px; flex:0 0 20px; }
+.vizcode-error-message { white-space:pre-wrap; overflow-wrap:anywhere; }
+.vizcode-trace { display:flex; align-items:flex-start; gap:14px; }
+.vizcode-memory-view { flex:1; min-width:0; overflow:auto; }
+.vizcode-output-panel { flex:0 0 220px; max-width:40%; padding:8px 12px; border-left:1px solid #d4ded7; }
+.vizcode-output-panel[hidden] { display:none !important; }
+.vizcode-output-panel h3 { margin:0 0 8px; font-size:14px; font-weight:normal; }
+.vizcode-output-panel pre { margin:0; padding:0; }
+.vizcode-row-dragging { opacity:.45; }
+.vizcode-drop-before { border-top:2px solid #126d52; }
+.vizcode-drag-preview { background:white; opacity:.9; box-shadow:0 3px 12px #0002; }
+@media(max-width:700px){.vizcode-trace {flex-direction:column;}.vizcode-memory-view {width:100%;}.vizcode-output-panel {flex:auto;max-width:100%;width:100%;border-left:0;border-top:1px solid #d4ded7;} }
+
+.vizcode-source .cm-lineNumbers {cursor:default;user-select:none;}
+.vizcode-source .cm-breakpointGutter {width:18px;min-width:18px;}
+.vizcode-source .cm-breakpointGutter .cm-gutterElement {padding:0;}
+.vizcode-source .cm-breakpoint {border:0;background:transparent;color:transparent;font:inherit;line-height:inherit;width:18px;padding:0;cursor:pointer;}
+.vizcode-source .cm-breakpoint:hover {color:#d98d8d;}
+.vizcode-source .cm-breakpoint-active,.vizcode-source .cm-breakpoint-active:hover {color:#bb2636;}
+.vizcode-source .cm-breakpoint:focus-visible {outline:2px solid #126d52;outline-offset:-2px;}

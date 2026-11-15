@@ -1,0 +1,37 @@
+/harness/node_modules/
+/harness/test-results/
+/harness/playwright-report/
+/.venv/
+/harness/assets/
+/harness/upstream-moodle/
+/plugin/vizcode/frontend/node_modules/
+/dist/
+/plugin/vizcode/assets/
+/plugin/vizcode/execution-assets/
+# Local state, secrets and generated test output.
+.DS_Store
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+/output/
+/tmp/
+/test-results/
+/playwright-report/
+/node_modules/
+*.log
+
+/harness/upstream-coderunner/
+/harness/upstream-behaviour/
+/harness/coderunner-fixture/.env
+*.bridge-backup
+
+*.vizcode.tmp
+
+# Local-only research correspondence and publication review material.
+/.private/
+
+# Internal maintainer reviews must never be tracked or packaged.
+/licensing/
+/docs/LICENSING*.md

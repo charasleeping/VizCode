@@ -1,0 +1,62 @@
+name: vizcode-coderunner
+services:
+  database:
+    image: mariadb:10.11@sha256:7db29378d4fdab73f8123bbc2b48905c90d1a4b00cf848b028f1e81e623257f2
+    environment:
+      MARIADB_ROOT_PASSWORD: local-fixture-only
+      MARIADB_DATABASE: moodle
+      MARIADB_USER: moodle
+      MARIADB_PASSWORD: local-fixture-only
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 5s
+      retries: 30
+    volumes: [database:/var/lib/mysql]
+  jobe:
+    build: {context: ../jobe}
+    restart: unless-stopped
+  java-job:
+    build: {context: ../../services/java, dockerfile: Dockerfile.job}
+    image: vizcode-java-job:21
+    profiles: [build]
+  java-supervisor:
+    build: {context: ../../services/java, dockerfile: Dockerfile.supervisor}
+    environment:
+      VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set the supervisor key}
+    volumes: [/var/run/docker.sock:/var/run/docker.sock]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:4103/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  execution:
+    build: {context: ../.., dockerfile: harness/coderunner-fixture/Dockerfile.execution}
+    ports: ["127.0.0.1:4102:4101"]
+    environment:
+      VIZCODE_FRAME_ANCESTORS: http://localhost:4115 http://localhost:4100
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing key}
+      VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set the supervisor key}
+    depends_on:
+      java-supervisor: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:4101/live/broker.html').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  moodle:
+    build: {context: ../.., dockerfile: harness/coderunner-fixture/Dockerfile}
+    ports: ["127.0.0.1:4115:80"]
+    environment:
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing key}
+    depends_on:
+      database: {condition: service_healthy}
+      jobe: {condition: service_healthy}
+      execution: {condition: service_healthy}
+    volumes: [moodledata:/var/moodledata, moodleconfig:/var/moodleconfig]
+volumes:
+  database:
+  moodledata:
+  moodleconfig:

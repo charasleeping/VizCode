@@ -1,0 +1,14 @@
+{
+  "harness/upstream-coderunner": {
+    "url": "https://github.com/trampgeek/moodle-qtype_coderunner.git",
+    "commit": "95470d84ac21d020a261e3d4220a5033ef1b17bc"
+  },
+  "harness/upstream-behaviour": {
+    "url": "https://github.com/trampgeek/moodle-qbehaviour_adaptive_adapted_for_coderunner.git",
+    "commit": "c7d4df35ff3c12731a81458f64a74667d367cf69"
+  },
+  "harness/upstream-moodle": {
+    "url": "https://github.com/moodle/moodle.git",
+    "commit": "215f44380bdc3ccf852a3a22e34f8423ff64033a"
+  }
+}
