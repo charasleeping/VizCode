@@ -66,11 +66,34 @@ wsl --install -d Ubuntu-24.04
 winget install --exact --id Docker.DockerDesktop
 ```
 
-Restart if requested. Open Ubuntu once and create its Linux username/password.
-Open Docker Desktop, complete its setup, and enable Ubuntu under
-Settings → Resources → WSL Integration. Then paste the Ubuntu/WSL block below
-into Ubuntu, not PowerShell. Windows cannot reliably be installed and restarted
-in a single uninterrupted command block.
+Restart if requested, then run this second block in PowerShell under the same
+Windows account. It makes Ubuntu-24.04 your default WSL distribution (Docker
+normally integrates with the default distribution), starts Docker Desktop, and
+opens Ubuntu:
+
+```powershell
+wsl --set-default-version 2
+wsl --set-default Ubuntu-24.04
+$dockerDesktop = @(
+  "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe",
+  "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $dockerDesktop) { throw "Docker Desktop installation was not found." }
+Start-Process $dockerDesktop
+wsl -d Ubuntu-24.04
+```
+
+Create the Ubuntu username/password when prompted on first launch, then paste
+the Ubuntu/WSL block below into that Ubuntu terminal. Docker Desktop may still
+require first-launch agreement/setup prompts. A restart, account creation,
+GitHub authentication and firmware virtualization settings cannot all be
+reliably bypassed by commands. No Docker settings changes are normally needed
+on a fresh installation. Existing customized Docker installations may still
+need Settings → Resources → WSL Integration enabled for Ubuntu-24.04.
+
+This uses Docker's documented [default-distribution integration](https://docs.docker.com/desktop/features/wsl/).
+Windows prerequisite commands are documented recipes, not a verified Windows
+installation test.
 
 #### Ubuntu 24.04 / Windows Ubuntu WSL — Bash
 
