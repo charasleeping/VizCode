@@ -1,6 +1,5 @@
-import type { PackageAsset } from './packageAssets';
 import type {FunctionState} from './functionDiscovery';
-export interface Request { diagnose?: boolean; functions?: FunctionState; packages?: PackageAsset[]; language?: 'python3' | 'cpp' | 'java'; code: string; scratchCode: string; stdin: string; interactiveInput?: boolean; inputEof?: boolean; javaTicket?: string; }
+export interface Request { diagnose?: boolean; functions?: FunctionState; language?: 'python3' | 'cpp' | 'java'; code: string; scratchCode: string; stdin: string; interactiveInput?: boolean; inputEof?: boolean; javaTicket?: string; }
 
 export class ExecutionProvider {
     private frame: HTMLIFrameElement;

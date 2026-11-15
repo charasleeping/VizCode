@@ -101,11 +101,7 @@ window.addEventListener('message', event => {
         request.functions.rows.length > 5000 || request.functions.rows.some(row=>!row || typeof row.id !== 'string' ||
             typeof row.checked !== 'boolean' || !Array.isArray(row.args) || row.args.some(arg=>typeof arg !== 'string')) ||
         JSON.stringify(request.functions).length > 500000)) {send('error',message.id,'Invalid function selections');return;}
-    if (request.packages && (!Array.isArray(request.packages) || request.packages.length > 8 ||
-        request.packages.some(item => !item || typeof item.archive !== 'string' || item.archive.length > 23000000 ||
-            typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || item.mode !== 'both'))) {
-        send('error',message.id,'Invalid package request'); return;
-    }
+    if (request.packages !== undefined) { send('error',message.id,'Trace package uploads are not supported'); return; }
     if (active) cancel(active.id);
     queued = message;
     prepare();

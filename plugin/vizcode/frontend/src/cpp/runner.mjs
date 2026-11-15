@@ -1,6 +1,5 @@
 import { API } from './vendor/shared.js';
 import { createClangApi, astDumpJson, CLANG22_CONFIG } from './vendor/compiler-bridge.js';
-import { unpackPackage } from './package-assets.mjs';
 import { instrument } from './instrument.mjs';
 let bundle;
 let output = '';
@@ -36,7 +35,6 @@ export async function traceCpp(request, onCompiled = () => {}) {
     const code = request.code + '\n// Scratch (local only)\n' + request.scratchCode;
     const boundary = request.code.split('\n').length + 1;
     const api = bundle.api;
-    installPackages(request,api);
     let source = request.code;
     // Scratch is executed by a wrapper main after a complete program, or as the
     // main body for a function-only answer. Map its lines back to the scratch pane.
@@ -107,27 +105,8 @@ export async function traceCpp(request, onCompiled = () => {}) {
     return JSON.stringify({ code, trace, inputRequest });
 }
 
-function installPackages(request,api) {
-    const directories = new Set();
-    for (const item of request.packages || []) {
-        if (item.mode !== 'both') throw new Error('Package is grading-only: ' + item.name);
-        const files = unpackPackage(item);
-        const prefix = 'vizpkg_' + item.digest.slice(0,32);
-        for (const [path,bytes] of Object.entries(files)) {
-            if (path.endsWith('/')) continue;
-            const full = prefix + '/' + path;
-            const parts = full.split('/'); parts.pop(); let directory='';
-            for (const part of parts) { directory += (directory?'/':'')+part; if(!directories.has(directory)){api.memfs.addDirectory(directory);directories.add(directory);} }
-            api.memfs.addFile(full,bytes);
-        }
-        for (const path of item.config.include_paths || []) api.clangCommonArgs.push('-I','/' + prefix + '/' + path);
-        for (const path of item.config.libraries || []) api.lldLibs.push(prefix + '/' + path);
-    }
-
-}
 /** AST compilation only: diagnostics do not link or execute student code. */
 export async function diagnoseCpp(request) {
-    installPackages(request,bundle.api);
     const start=bundle.log.text.length;
     try {await astDumpJson(bundle,request.code,{input:'answer.cc'});return '';}
     catch(error){return (bundle.log.text.slice(start) || String(error.message)).replace(/\x1b\[[0-9;]*m/g,'').slice(0,12000);}

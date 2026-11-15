@@ -57,24 +57,6 @@ __viz_diagnostic_message`);
                 self.postMessage({ type: 'result', id, payload: result });
                 return;
             }
-            if (payload.packages?.length) {
-                const {unpackPackage} = await import('./cpp/package-assets.mjs');
-                for (const item of payload.packages) {
-                    if (item.mode !== 'both') throw new Error('Package is grading-only: ' + item.name);
-                    const files = unpackPackage(item);
-                    const prefix = '/home/pyodide/vizpkg_' + item.digest.slice(0,32);
-                    runtime.FS.mkdirTree(prefix);
-                    for (const [path,bytes] of Object.entries(files)) {
-                        if (path.endsWith('/')) continue;
-                        const full = prefix + '/' + path;
-                        runtime.FS.mkdirTree(full.slice(0,full.lastIndexOf('/')));
-                        runtime.FS.writeFile(full,bytes);
-                    }
-                    runtime.globals.set('__viz_package_path',prefix + '/' + item.config.python_path);
-                    runtime.runPython('import sys; sys.path.insert(0, __viz_package_path)');
-                    runtime.globals.delete('__viz_package_path');
-                }
-            }
             runtime.globals.set('request_json', JSON.stringify(payload));
             const result = runtime.runPython(`helper_namespace = {'__name__': 'optmentor_runtime', 'request_json': request_json}
 exec(compile(${JSON.stringify(`

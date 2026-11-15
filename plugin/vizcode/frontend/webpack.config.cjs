@@ -17,7 +17,7 @@ const widget = {
             compiler.hooks.afterEmit.tap('ExecutionAssets', () => {
                 const output = path.resolve(__dirname, '../execution-assets');
                 fs.mkdirSync(output, { recursive: true });
-                for(const file of ['javascript-tracer.mjs','javascript-tracer.mjs.LICENSE.txt'])fs.rmSync(path.join(output,file),{force:true});
+                for(const file of ['javascript-tracer.mjs','javascript-tracer.mjs.LICENSE.txt','cpp/package-assets.mjs','cpp/package-assets.mjs.LICENSE.txt','license-modules/package-assets.mjs.json','licenses/fflate.txt','licenses/npm/fflate-0.8.2-LICENSE'])fs.rmSync(path.join(output,file),{force:true});
                 fs.cpSync(path.resolve(__dirname, '../licenses'), path.join(output, 'licenses'), { recursive: true });
                 fs.copyFileSync(path.resolve(__dirname,'../THIRD_PARTY_NOTICES.md'),path.join(output,'THIRD_PARTY_NOTICES.md'));
                 for (const file of ['broker.html', 'broker.mjs', 'worker.mjs']) {
@@ -33,12 +33,7 @@ const widget = {
         }
     }]
 };
-module.exports = [widget, {
-    mode:'production', entry:'./src/widget/packageAssets.ts', experiments:{outputModule:true},
-    output:{path:path.resolve(__dirname,'../execution-assets/cpp'),filename:'package-assets.mjs',library:{type:'module'}},
-    resolve:{extensions:['.ts','.js']},
-    module:{rules:[{test:/\.ts$/,use:'ts-loader',exclude:/node_modules/}]}
-}];
+module.exports = [widget];
 
 module.exports.push({mode:'production',entry:'./src/widget/functionDiscovery.ts',experiments:{outputModule:true},
  output:{path:path.resolve(__dirname,'../execution-assets'),filename:'function-discovery.mjs',library:{type:'module'}},

@@ -103,33 +103,24 @@ test('errors, limits and edits during execution recover without Run or Stop', as
     await expect(page.locator('.vizcode-output')).toHaveText('73\n');
 });
 
-test('history restoration remounts and automatically traces the restored answer', async ({ page }) => {
+test('suspending and resuming preserves the editor and restarts tracing', async ({ page }) => {
     await page.goto('/live.html');
     await expect(page.locator('.vizcode-widget')).toBeVisible();
-    await page.evaluate(() => {widget.setCode('print(81)');window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));});
-    await expect(page.locator('.vizcode-widget')).toHaveCount(0);
-    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await page.evaluate(() => {widget.setCode('print(81)');widget.suspend();});
+    await expect(page.locator('iframe')).toHaveCount(0);
+    await expect(page.getByRole('textbox',{name:'Answer source',exact:true})).toHaveText('print(81)');
+    await page.evaluate(() => widget.resume());
     await expect(page.locator('.vizcode-widget')).toHaveCount(1);
-    await expect(page.locator('.ExecutionVisualizer')).toBeVisible({timeout:70000});
     await expect(page.locator('.ExecutionVisualizer')).toBeVisible({ timeout: 70000 });
     await page.getByRole('button', { name: 'Last step', exact: true }).click();
     await expect(page.locator('.vizcode-output')).toHaveText('81\n');
 });
 
-test('initial tracing can be disabled; grading-only packages start no execution workers',async({page})=>{
+test('initial tracing can be disabled until the answer changes',async({page})=>{
     await page.goto('/live.html?noautotrace');
     await expect(page.locator('.vizcode-widget')).toBeVisible();
     await page.waitForTimeout(800);
     await expect(page.locator('iframe')).toHaveCount(0);
     await page.evaluate(()=>widget.setCode('print(11)'));
     await expect(page.locator('.ExecutionVisualizer')).toBeVisible({timeout:70000});
-    await page.evaluate(async()=>{
-        widget.destroy();const root=document.createElement('div');document.body.append(root);
-        window.widget=VizCode.create({initialCode:'print(99)',brokerUrl:'http://127.0.0.1:4104/live/broker.html',
-            loadPackages:async()=>[{digest:'a'.repeat(64),name:'native-example',mode:'grading',config:{},archive:''}]});
-        await widget.mount(root);
-    });
-    await expect(page.locator('.vizcode-package-notice')).toContainText('grading-only packages: native-example');
-    await expect(page.locator('iframe')).toHaveCount(0);
-    await expect(page.locator('.vizcode-status')).toHaveText('Check only');
 });

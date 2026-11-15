@@ -2,7 +2,6 @@ import '../opt/js/_references';
 import { OptCmEditor } from '../opt/js/cm-editor';
 import { ExecutionVisualizer } from '../opt/js/pytutor';
 import { createElement, ChevronLeft, ChevronRight, SkipBack, SkipForward, ArrowRight, Check, X } from 'lucide';
-import type { PackageAsset } from './packageAssets';
 import { ExecutionProvider } from './ExecutionProvider';
 import { validateTrace } from './validateTrace';
 import './widget.css';
@@ -17,7 +16,6 @@ export interface Config {
     tracingEnabled?: boolean;
     getJavaTicket?: (request: any) => Promise<string>;
     brokerUrl: string;
-    initialScratch?: string; // Deprecated and never executed.
     initialFunctions?: FunctionState;
     initialInput?: string;
     initialInputHistory?: string[];
@@ -25,12 +23,10 @@ export interface Config {
     onChange?: (code: string) => void;
     onAuxiliaryChange?: (state: AuxiliaryState) => void;
     debug?: boolean;
-    loadPackages?: (language: string) => Promise<PackageAsset[]>;
 }
 
 export interface AuxiliaryState {
     breakpoints?: number[];
-    scratchCode: string; // Always empty; retained for storage compatibility.
     functions?: FunctionState;
     stdin: string;
     inputHistory?: string[];
@@ -61,7 +57,6 @@ export class Widget {
     private error: HTMLElement;
     private traceRoot: HTMLElement;
     private counter: HTMLElement;
-    private packageNotice: HTMLElement;
     private slider: HTMLInputElement;
     private sliderFrame=0;
     private sliderTarget=-1;
@@ -123,7 +118,6 @@ export class Widget {
         this.setStatus(this.config.readOnly ? 'Read-only' : 'Ready');
         toolbar.append(this.slider, this.counter, this.status);
         this.root.append(toolbar);
-        this.packageNotice = document.createElement('p'); this.packageNotice.className = 'vizcode-package-notice'; this.packageNotice.setAttribute('role','status'); this.root.append(this.packageNotice);
         const workspace = document.createElement('div');
         workspace.className = 'vizcode-workspace';
         const answer = document.createElement('div');
@@ -284,11 +278,6 @@ export class Widget {
     private async refresh(revision: number) {
         if (this.destroyed || revision !== this.revision) return;
         try {
-            const packages = await (this.config.loadPackages?.(this.config.language || 'python3') || Promise.resolve([]));
-            if (this.destroyed || revision !== this.revision) return;
-            const gradingOnly = packages.filter(item => item.mode !== 'both');
-            this.packageNotice.textContent = gradingOnly.length ? 'Live debugging is unavailable for grading-only packages: ' + gradingOnly.map(item=>item.name).join(', ') + '. Use Check to run your answer.' : '';
-            if (gradingOnly.length) { this.setStatus('Check only'); return; }
             if (!this.provider) {
                 this.provider = new ExecutionProvider(this.config.brokerUrl, this.root, event => this.diagnostic(event), this.config.language);
                 void this.provider.prepare().catch(() => {});
@@ -300,7 +289,7 @@ export class Widget {
             const calls=discovery.valid?buildCalls(this.getCode(),this.config.language || 'python3',this.functions):{source:'',mapping:[]};
             this.callsMapping=calls.mapping;
             this.setStatus('Tracing');
-            const request = { interactiveInput: true, code: this.getCode(), language: this.config.language || 'python3', ...this.getAuxiliaryState(), scratchCode:calls.source, functions:discovery.valid?this.functions:undefined, diagnose:!discovery.valid, packages };
+            const request = { interactiveInput: true, code: this.getCode(), language: this.config.language || 'python3', ...this.getAuxiliaryState(), scratchCode:calls.source, functions:discovery.valid?this.functions:undefined, diagnose:!discovery.valid };
             this.diagnostic('PYODIDE_RUN_START');
             const raw = await this.provider.execute(request, this.config.getJavaTicket);
             if (this.destroyed || revision !== this.revision) return;
@@ -393,7 +382,7 @@ export class Widget {
         }
     }
     private editorMode() { if(this.config.language==='java')return 'java'; return this.config.language === 'cpp' ? 'c_cpp' : 'python'; }
-    setLanguage(language: 'python3' | 'cpp' | 'java', code: string, auxiliary: AuxiliaryState = { scratchCode: '', stdin: '' }) {
+    setLanguage(language: 'python3' | 'cpp' | 'java', code: string, auxiliary: AuxiliaryState = { stdin: '' }) {
         if (this.config.readOnly) return;
         this.revision++;
         clearTimeout(this.timer);
@@ -418,7 +407,7 @@ export class Widget {
         else this.config.initialCode = code;
     }
     getAuxiliaryState(): AuxiliaryState {
-        return { breakpoints:this.editor?.getBreakpoints() || [], scratchCode: '', functions: this.functions, stdin: this.inputHistory.join(''),
+        return { breakpoints:this.editor?.getBreakpoints() || [], functions: this.functions, stdin: this.inputHistory.join(''),
             inputHistory: [...this.inputHistory], inputEof: this.inputEof };
     }
     private restoreInput(state: Partial<AuxiliaryState>) {

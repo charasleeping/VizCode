@@ -20,8 +20,6 @@
 .vizcode-error { color: #a02d21; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .vizcode-widget .curLineStepGutter:after { content: ">"; color: #126d52; font-weight: bold; }
 @media (max-width: 600px) { .vizcode-workspace { grid-template-columns: minmax(0, 1fr); } .vizcode-status { width: 100%; text-align: right; } .vizcode-steps { flex-wrap: wrap; } }
-.vizcode-package-notice:empty { display:none; }
-.vizcode-package-notice { margin:8px 0; color:#46554e; font-size:13px; }
 
 .vizcode-scratch .cm-gutters { background:#e5edf8 !important; color:#294b72 !important; }
 .vizcode-scratch .cm-activeLineGutter { background:#cfddf0 !important; }

@@ -38,8 +38,6 @@ Philip J. Guo; fork contributions retain their own notices.
   unminified release header offers MIT or GPL2; the MIT option is selected.
   `jsplumb-1.3.10-source-notice.txt` retains that header; `MIT-standard.txt` supplies
   the canonical MIT text from SPDX license-list-data v3.27.0.
-- fflate 0.8.2: MIT. Used by execution/package archive decoding; its existing full
-  notice and corresponding npm package license are retained.
 - CSS/style loader runtime helpers are emitted into the browser bundle even
   though npm marks the packages as development dependencies. Their MIT notices
   are included. The generated inventory distinguishes these from build-only tools.
