@@ -4,7 +4,6 @@
 **/__pycache__
 **/.DS_Store
 dist/*
-!dist/vizcode.zip
 output
 tmp
 harness/test-results
@@ -12,3 +11,6 @@ harness/playwright-report
 harness/packages
 **/.env
 **/.env.*
+.private
+licensing
+docs/LICENSING*.md

@@ -3,8 +3,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -
 COPY --chown=www-data:www-data harness/upstream-moodle /var/www/html
 COPY --chown=www-data:www-data harness/upstream-coderunner /var/www/html/question/type/coderunner
 COPY --chown=www-data:www-data harness/upstream-behaviour /var/www/html/question/behaviour/adaptive_adapted_for_coderunner
-COPY dist/vizcode.zip /tmp/vizcode.zip
-RUN unzip -q /tmp/vizcode.zip -d /var/www/html/local && rm /tmp/vizcode.zip && chown -R www-data:www-data /var/www/html/local/vizcode
+# Local development installs from source without a distributable ZIP.
+# Execution assets stay off Moodle.
+COPY --chown=www-data:www-data plugin/vizcode/*.php plugin/vizcode/*.xml plugin/vizcode/*.md plugin/vizcode/LICENSE plugin/vizcode/styles.css /var/www/html/local/vizcode/
+COPY --chown=www-data:www-data plugin/vizcode/amd /var/www/html/local/vizcode/amd
+COPY --chown=www-data:www-data plugin/vizcode/assets /var/www/html/local/vizcode/assets
+COPY --chown=www-data:www-data plugin/vizcode/classes /var/www/html/local/vizcode/classes
+COPY --chown=www-data:www-data plugin/vizcode/db /var/www/html/local/vizcode/db
+COPY --chown=www-data:www-data plugin/vizcode/lang /var/www/html/local/vizcode/lang
+COPY --chown=www-data:www-data plugin/vizcode/licenses /var/www/html/local/vizcode/licenses
+COPY --chown=www-data:www-data plugin/vizcode/bridge /var/www/html/local/vizcode/bridge
 RUN python3 /var/www/html/local/vizcode/bridge/install.py --moodle /var/www/html && \
     mkdir -p /var/moodledata /var/moodleconfig && \
     ln -s /var/moodleconfig/config.php /var/www/html/config.php && \

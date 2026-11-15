@@ -13,6 +13,8 @@ $course=$DB->get_record('course',['shortname'=>'VIZCODE_CR']);if(!$course)$cours
 $context=context_course::instance($course->id);
 $enrol=enrol_get_plugin('manual');$instances=enrol_get_instances($course->id,true);$instance=reset($instances);
 if(!$instance){$enrol->add_instance($course);$instances=enrol_get_instances($course->id,true);$instance=reset($instances);}
+// Demo accounts use non-deliverable addresses; enrol them without welcome mail.
+$instance->customint1=ENROL_DO_NOT_SEND_EMAIL;
 foreach([['student','LocalStudentOnly1!','student'],['student_chromium','LocalStudentOnly1!','student'],['student_firefox','LocalStudentOnly1!','student'],['student_webkit','LocalStudentOnly1!','student'],['teacher','LocalTeacherOnly1!','editingteacher']] as [$name,$password,$role]){
  $user=$DB->get_record('user',['username'=>$name]);if(!$user){$user=(object)['username'=>$name,'password'=>$password,'firstname'=>ucfirst($name),'lastname'=>'VizCode','email'=>$name.'@example.invalid','auth'=>'manual','confirmed'=>1,'mnethostid'=>$CFG->mnet_localhost_id];$user->id=user_create_user($user);}
  $enrol->enrol_user($instance,$user->id,$DB->get_field('role','id',['shortname'=>$role]));

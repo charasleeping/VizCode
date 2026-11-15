@@ -17,6 +17,7 @@
 
 <p align="center">
   <a href="docs/INSTALL.md">Installation</a> ·
+  <a href="docs/TEAM-TESTING.md">Group testing</a> ·
   <a href="docs/USAGE.md">Usage</a> ·
   <a href="docs/DEVELOPMENT.md">Local development</a> ·
   <a href="docs/OPERATIONS.md#troubleshooting">Troubleshooting</a>
@@ -26,9 +27,31 @@ VizCode requires CodeRunner, which manages question authoring, tests, templates,
 grading and penalties. Enable VizCode on an existing question by changing its
 UI plugin setting; keep the question's existing tests and grading template.
 
+## Group project — try it locally
+
+For Agentic Coding groupmates, the demo sets up Moodle, CodeRunner, VizCode and
+sample questions on your own computer. Install Git, Node.js 22/npm, Python 3 and
+Docker with Compose; start Docker before running:
+
+```sh
+git clone https://github.com/charasleeping/VizCode.git
+cd VizCode
+sh harness/demo.sh setup
+```
+
+Open [the demo course](http://localhost:4115/course/view.php?id=2) and log in as
+`student` with `LocalStudentOnly1!`. The repository owner must grant groupmates
+access while the repository is private.
+
+The [group testing guide](docs/TEAM-TESTING.md) includes Windows/macOS/Linux setup,
+teacher/admin accounts, stop/restart commands and a short testing checklist.
+[Copy-ready examples](docs/TEAM-EXAMPLES.md) cover Python, C++ and Java.
+
 ## Requirements
 
-This beta supports the following combination:
+These are the external platform requirements. `1.0.0-beta.2` is VizCode's own
+development version, not another dependency to install. The local demo supplies
+the platform versions below through its pinned sources and containers:
 
 | Component | Supported version |
 | --- | --- |
@@ -36,7 +59,6 @@ This beta supports the following combination:
 | PHP | 8.3 |
 | CodeRunner | 5.10.9 |
 | CodeRunner adaptive behaviour | 1.4.8 |
-| VizCode | 1.0.0-beta.2 |
 
 The integration bridge checks exact upstream versions and file checksums.
 See [pinned revisions](upstreams.json); other combinations require a reviewed
@@ -102,6 +124,7 @@ those installed on the grading server. See [usage and limitations](docs/USAGE.md
 | --- | --- |
 | [Installation](docs/INSTALL.md) | Administrators adding VizCode to an existing CodeRunner site |
 | [Usage](docs/USAGE.md) | Teachers configuring questions and students using the debugger |
+| [Group testing](docs/TEAM-TESTING.md) | One-command local demo, accounts and a feature checklist |
 | [Development](docs/DEVELOPMENT.md) | Fresh-computer setup, demo accounts, builds and tests |
 | [Operations](docs/OPERATIONS.md) | Service limits, troubleshooting and verification coverage |
 

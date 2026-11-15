@@ -1,6 +1,9 @@
 # Development and local testing
 
-Use macOS/Linux or Windows WSL2. Install Git, **Node.js 22/npm**, Python 3, `zip`,
+For a guided group demo, start with [Group testing](TEAM-TESTING.md) and
+`sh harness/demo.sh setup`. The commands below explain its individual stages.
+
+Use macOS/Linux or Windows WSL2. Install Git, **Node.js 22/npm**, Python 3,
 Docker Engine/Desktop and Compose. Start Docker and allow at least **6 GB RAM**
 and approximately **15 GB free Docker storage**. No host Java installation is
 required. Internet access is required for initial source/compiler/image downloads.
@@ -17,18 +20,15 @@ node harness/scripts/build-vizcode.mjs
 
 The first bootstrap verifies/downloads the pinned Moodle, CodeRunner and adaptive
 behaviour checkouts. The C++ bootstrap downloads checksum-verified compiler and
-library assets. The build creates the editor/runtime bundles. Distribution
-packaging requires the maintainer's separate release-review configuration;
-ordinary development builds do not require it.
+library assets. The build creates editor/runtime bundles. Start the local Moodle
+demo directly from source:
 
 ```sh
-# Maintainer packaging, after the release review has passed:
-node harness/scripts/build-vizcode.mjs --zip
 sh harness/coderunner-fixture/install.sh
 ```
 
-Fresh checkouts can use the editor harness below. Existing local Moodle fixtures
-can continue running with their previously installed build.
+No installer ZIP is needed for local testing. Creating a distributable ZIP remains
+a separate maintainer operation.
 
 The installation script builds isolated services, installs a **separate fresh
 Moodle database**, creates demonstration questions/accounts and prints the quiz URL.
@@ -88,7 +88,8 @@ limits, troubleshooting and the maintained verification record.
 
 ## Build the installation bundle
 
-After maintainer release verification passes, commit the matching source and build the ZIP:
+After maintainer release verification passes, install the `zip` command, commit
+the matching source and build the ZIP:
 
 ```sh
 python3 harness/scripts/release-bundle.py
