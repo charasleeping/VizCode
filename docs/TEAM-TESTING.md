@@ -116,29 +116,6 @@ SETUP
 Continue at [Try the features](#3-try-the-features) after setup finishes.
 For later sessions, use [Daily use](#daily-use); do not repeat installation.
 
-<details>
-<summary>Windows troubleshooting — only if a stage fails</summary>
-
-For an invalid distribution name, compare available and installed distributions:
-
-```powershell
-wsl --list --online
-wsl --list --verbose
-```
-
-Installation uses a NAME from the online list; selecting or launching uses a
-NAME from the installed list. If the installed name is `Ubuntu`, replace
-`Ubuntu-24.04` with `Ubuntu` in stage 2. If no distributions are installed,
-finish stage 1 first. Do not unregister an existing distribution to rename it.
-
-If WSL needs updating, run `wsl --update` and follow any restart instructions.
-If the installed distribution shows VERSION 1, follow
-[Microsoft's WSL 2 conversion instructions](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#set-wsl-version-to-1-or-2).
-If Docker cannot connect, check Docker Desktop → Settings → Resources → WSL
-Integration for the selected Ubuntu distribution. Existing Docker settings,
-GitHub authentication and firmware virtualization prompts may need attention.
-
-</details>
 
 #### Ubuntu 24.04 — native Linux
 
