@@ -48,6 +48,8 @@ access while the repository is private.
 The [group testing guide](docs/TEAM-TESTING.md) includes Windows/macOS/Linux setup,
 teacher/admin accounts, stop/restart commands and a short testing checklist.
 [Copy-ready examples](docs/TEAM-EXAMPLES.md) cover Python, C++ and Java.
+Already have the demo? Follow [Update an existing demo](docs/TEAM-TESTING.md#update-an-existing-demo)
+to install the latest changes while keeping your saved work.
 
 ## Requirements
 

@@ -234,6 +234,39 @@ Start Docker before these commands. Stopping retains users, attempts and questio
 Do not delete Docker volumes to restart or update the demo. Updating does not
 reset passwords on existing accounts or overwrite existing question answers.
 
+## Update an existing demo
+
+Start Docker Desktop/Engine and save your work before updating. Open a terminal
+in your existing VizCode project directory; on Windows, use the Ubuntu terminal.
+Keep any local code changes committed or saved before pulling updates.
+
+For Windows/Ubuntu installations using nvm:
+
+```sh
+git pull --ff-only
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+nvm use 22
+sh harness/demo.sh setup
+```
+
+For macOS installations using Homebrew:
+
+```sh
+git pull --ff-only
+export PATH="$(brew --prefix node@22)/bin:$PATH"
+sh harness/demo.sh setup
+```
+
+The setup command rebuilds the demo and applies Moodle plugin upgrades while
+retaining its database volumes, users and attempts. Keep the fixture `.env` file
+and Docker volumes. You do not need to clone the repository or reinstall Ubuntu
+or Docker. `start` alone restarts the existing build; it does not install updates.
+
+Once setup finishes, reload the [demo course](http://localhost:4115/course/view.php?id=2)
+in your browser. These instructions update the local group demo; administrators
+of an existing Moodle site should follow [Upgrades and removal](INSTALL.md#upgrades-and-removal).
+
 ## If something fails
 
 | Symptom | What to check |
