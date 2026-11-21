@@ -50,7 +50,8 @@ test('native changed-answer warning follows the latest Check and preserves newer
 });
 test('Java methods trace through the same function rows and output panel',async({page})=>{
  test.setTimeout(180000);await attempt(page);const question=page.locator('.que').filter({has:page.locator('[data-vizcode]')}).nth(2);
- await expect(question.locator('.vizcode-status')).toHaveAttribute('aria-label','Ready',{timeout:90000});
+ // Attempts survive repeated test runs; do not assume the previous run left a method fragment.
+ await question.getByRole('textbox',{name:'Answer source',exact:true}).fill('static int print_factorial(int n) { return n < 2 ? 1 : n * print_factorial(n-1); }');
  const row=question.locator('.vizcode-function-row').first();await expect(row).toBeVisible();await row.getByRole('textbox').fill('5');await row.getByRole('checkbox').check();
  await expect(question.locator('.vizcode-status')).toHaveAttribute('aria-label','Ready',{timeout:90000});
  await finishTrace(question);await expect(question.locator('.ExecutionVisualizer')).toBeVisible();

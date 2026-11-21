@@ -52,19 +52,14 @@ stackframe and Emscripten are retained alongside the parent runtime licenses.
 Each text applies to its respective component. No additional Python registry
 packages are shipped.
 
-## C++ execution runtime
+## Native debugging tools
 
-The adapter derives from cppstudio-io/wasm-clang-runtime commit
-`df1180d80184733c6a01599f76b92b4001d20f87`, itself derived from binji/wasm-clang.
-Apache-2.0, LLVM exception text and upstream NOTICE remain beside its source.
-The memfs source includes Sean Barrett's `stb_sprintf`; its MIT option and full
-notice are retained in the source. Changes include module exports, trace imports,
-C++17 settings, file-stat fixes and rebuilt memfs.
-
-The downloaded Clang/LLD binaries, sysroot22 and wasi-sdk33 exception overlay have
-pinned checksums in the compiler manifest. Component notices for WASI libc (musl/cloudlibc), LLVM, libc++, libc++abi,
-libunwind and compiler-rt are retained separately. Their license texts apply to
-their respective components; the compiler manifest records artifact digests.
+The C++ adapter uses GCC/G++, GDB and the system C++ runtime installed by its
+Docker build recipe. It does not ship a browser compiler or LLVM/WASI runtime.
+Installed packages retain their upstream copyright and license files in the
+image, including `/usr/share/doc/*/copyright`. The optional DAP example installs
+Microsoft debugpy 1.8.17 (MIT) in its isolated image; its installed distribution
+retains its notices. Source: https://github.com/microsoft/debugpy/tree/v1.8.17 .
 
 ## Moodle integration and server builds
 

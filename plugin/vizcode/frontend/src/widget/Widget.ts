@@ -10,11 +10,12 @@ import {discover,buildCalls,FunctionState} from './functionDiscovery';
 export interface Config {
     initialCode: string;
     initialBreakpoints?: number[];
-    language?: 'python3' | 'cpp' | 'java';
+    language?: string;
     readOnly?: boolean;
     autoTraceOnMount?: boolean;
     tracingEnabled?: boolean;
-    getJavaTicket?: (request: any) => Promise<string>;
+    getTraceTicket?: (request: any) => Promise<string>;
+    getJavaTicket?: (request: any) => Promise<string>; // Deprecated callback alias.
     brokerUrl: string;
     initialFunctions?: FunctionState;
     initialInput?: string;
@@ -39,6 +40,7 @@ export class Widget {
     private functions: FunctionState = {version:1,rows:[]};
     private functionsPanel: HTMLElement;
     private callsMapping: string[] = [];
+    private adapter: any;
     private stale = false;
     private functionsLocked = false;
     private animation?: Animation;
@@ -50,6 +52,7 @@ export class Widget {
     private resumeStep = 0;
     private inputVisible = false;
     private status: HTMLElement;
+    private adapterNotice: HTMLElement;
     private output: HTMLElement;
     private outputPanel: HTMLElement;
     private dragPreview?: HTMLElement;
@@ -118,6 +121,7 @@ export class Widget {
         this.setStatus(this.config.readOnly ? 'Read-only' : 'Ready');
         toolbar.append(this.slider, this.counter, this.status);
         this.root.append(toolbar);
+        this.adapterNotice=document.createElement('p');this.adapterNotice.className='vizcode-adapter-notice';this.adapterNotice.setAttribute('role','note');this.adapterNotice.hidden=true;this.root.append(this.adapterNotice);
         const workspace = document.createElement('div');
         workspace.className = 'vizcode-workspace';
         const answer = document.createElement('div');
@@ -282,19 +286,31 @@ export class Widget {
                 this.provider = new ExecutionProvider(this.config.brokerUrl, this.root, event => this.diagnostic(event), this.config.language);
                 void this.provider.prepare().catch(() => {});
             }
-            const discovery=discover(this.getCode(),this.config.language || 'python3',this.functions);
+            const adapter=await this.provider.describe(this.config.language || 'python3');
+            if(this.destroyed || revision!==this.revision)return;
+            this.adapter=adapter;this.editor.setMode(adapter.editorMode || 'text');
+            const missing=[['identity','reliable object identity'],['returns','return values'],['input','interactive input']].filter(([key])=>!adapter.capabilities?.[key]).map(([,label])=>label);
+            this.adapterNotice.textContent=missing.length?'This adapter does not provide '+missing.join(', ')+'.':'';this.adapterNotice.hidden=!missing.length;
+            let discovery:any,calls:any;
+            if(adapter.discovery){
+                discovery=discover(this.getCode(),adapter.discovery,this.functions);
+                calls=discovery.valid?buildCalls(this.getCode(),adapter.discovery,this.functions):{source:'',mapping:[]};
+            }else if(adapter.capabilities?.discovery){
+                const raw=await this.provider.execute({code:this.getCode(),language:this.config.language,stdin:'',scratchCode:'',functions:this.functions,operation:'discover'},(this.config.getTraceTicket || this.config.getJavaTicket));
+                if(this.destroyed || revision!==this.revision)return;
+                discovery=JSON.parse(raw);calls={source:discovery.source || '',mapping:discovery.mapping || []};
+            }else{discovery={valid:true,locked:true,rows:[]};calls={source:'',mapping:[]};}
             const same=JSON.stringify(discovery.rows.map(r=>[r.id,r.reason]))===JSON.stringify(this.functions.rows.map(r=>[r.id,r.reason]));
             const locked=discovery.locked || !discovery.valid;
             if(!same || !this.functionsPanel.childElementCount || locked!==this.functionsLocked){this.functions={version:1,rows:discovery.rows};this.functionsLocked=locked;this.renderFunctions(locked);}
-            const calls=discovery.valid?buildCalls(this.getCode(),this.config.language || 'python3',this.functions):{source:'',mapping:[]};
             this.callsMapping=calls.mapping;
             this.setStatus('Tracing');
             const request = { interactiveInput: true, code: this.getCode(), language: this.config.language || 'python3', ...this.getAuxiliaryState(), scratchCode:calls.source, functions:discovery.valid?this.functions:undefined, diagnose:!discovery.valid };
             this.diagnostic('PYODIDE_RUN_START');
-            const raw = await this.provider.execute(request, this.config.getJavaTicket);
+            const raw = await this.provider.execute(request, (this.config.getTraceTicket || this.config.getJavaTicket));
             if (this.destroyed || revision !== this.revision) return;
             const result = JSON.parse(raw);
-            validateTrace(result, request.code + (request.language === 'python3' ? '\n# Scratch (local only)\n' : '\n// Scratch (local only)\n') + request.scratchCode);
+            validateTrace(result, request.code + '\n'+(adapter.legacySeparator || '// Scratch (local only)')+'\n'+request.scratchCode);
             const error = [...result.trace].reverse().find(entry => entry.exception_msg);
             if (result.trace[0]?.event === 'uncaught_exception') throw new Error(error?.exception_msg || 'The answer could not be traced.');
             this.clearTrace(); this.stale=false;
@@ -306,7 +322,7 @@ export class Widget {
                 const memory=document.createElement('div');memory.id=this.traceRoot.id+'-memory';memory.className='vizcode-memory-view';
                 this.outputPanel.hidden=true;this.traceRoot.append(memory,this.outputPanel);
                 this.visualization = new ExecutionVisualizer(memory.id, result, { hideCode: true,
-                    compactMode: true, embeddedMode: true, normalizedTrace: true, lang: this.config.language === 'cpp' ? 'cpp' : this.config.language === 'java' ? 'java' : 'py3', startingInstruction: Math.min(this.resumeStep, result.trace.length - 1) });
+                    compactMode: true, embeddedMode: true, normalizedTrace: true, lang: adapter.renderer || 'py3', startingInstruction: Math.min(this.resumeStep, result.trace.length - 1) });
                 this.visualization.add_pytutor_hook('end_updateOutput', () => { this.updateStep(); return [false]; });
                 this.updateStep();
             }
@@ -381,8 +397,8 @@ export class Widget {
             if(changed && this.animation?.playState!=='running')this.visualization.redrawConnectors();
         }
     }
-    private editorMode() { if(this.config.language==='java')return 'java'; return this.config.language === 'cpp' ? 'c_cpp' : 'python'; }
-    setLanguage(language: 'python3' | 'cpp' | 'java', code: string, auxiliary: AuxiliaryState = { stdin: '' }) {
+    private editorMode() { return this.adapter?.editorMode || 'text'; }
+    setLanguage(language: string, code: string, auxiliary: AuxiliaryState = { stdin: '' }) {
         if (this.config.readOnly) return;
         this.revision++;
         clearTimeout(this.timer);
@@ -438,7 +454,7 @@ export class Widget {
         field.addEventListener('input', resize, {signal: this.events.signal});
         const send = () => {
             let value = field.value.replace(/\r\n?/g, '\n');
-            const end = request.kind === 'all' || ((this.config.language==='cpp' && value==='') || (['cpp','java'].includes(this.config.language) && value.includes('\n')));
+            const end = request.kind === 'all' || ((this.adapter?.inputPolicy?.endOnEmpty && value==='') || (this.adapter?.inputPolicy?.endOnMultiline && value.includes('\n')));
             if (!end && !value.endsWith('\n')) value += '\n';
             if (this.inputHistory.join('').length + value.length > 100000) {
                 this.error.textContent = 'Input exceeds 100,000 characters.'; return;

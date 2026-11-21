@@ -20,12 +20,10 @@ const widget = {
                 for(const file of ['javascript-tracer.mjs','javascript-tracer.mjs.LICENSE.txt','cpp/package-assets.mjs','cpp/package-assets.mjs.LICENSE.txt','license-modules/package-assets.mjs.json','licenses/fflate.txt','licenses/npm/fflate-0.8.2-LICENSE'])fs.rmSync(path.join(output,file),{force:true});
                 fs.cpSync(path.resolve(__dirname, '../licenses'), path.join(output, 'licenses'), { recursive: true });
                 fs.copyFileSync(path.resolve(__dirname,'../THIRD_PARTY_NOTICES.md'),path.join(output,'THIRD_PARTY_NOTICES.md'));
-                for (const file of ['broker.html', 'broker.mjs', 'worker.mjs']) {
+                for (const file of ['broker.html', 'broker.mjs', 'worker.mjs', 'protocol.mjs']) {
                     fs.copyFileSync(path.resolve(__dirname, 'src/widget', file), path.join(output, file));
                 }
-                fs.cpSync(path.resolve(__dirname, 'src/cpp'), path.join(output, 'cpp'), { recursive: true });
-                fs.copyFileSync(path.resolve(__dirname, 'src/cpp/memfs.wasm'), path.join(output, 'cpp/memfs'));
-                fs.copyFileSync(path.resolve(__dirname, 'src/cpp/trace-runtime.hpp'), path.join(output, 'cpp/trace-runtime.hpp'));
+                fs.rmSync(path.join(output,'cpp'),{recursive:true,force:true});
                 fs.cpSync(path.resolve(__dirname, 'src/opt/optlite'), path.join(output, 'optlite'),
                     { recursive: true, filter: source => !source.includes('__pycache__') });
                 fs.cpSync(path.resolve(__dirname, 'node_modules/pyodide'), path.join(output, 'pyodide'), { recursive: true });

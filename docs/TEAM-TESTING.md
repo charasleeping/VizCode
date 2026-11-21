@@ -203,8 +203,7 @@ Each groupmate runs their own instance; `localhost` always means their computer.
 2. Test Python, C++ and Java. Edit the preloaded answer (adding a comment is enough)
    before pressing Check; CodeRunner requires an edit to the preloaded answer.
 3. Select the factorial function row, enter `5` and step through execution. Inspect
-   Frames and Objects. For C++, assign or print a result to inspect it: return
-   values are not yet displayed directly at the return step.
+   Frames and Objects. At a C++ function return, inspect the `__return__` value.
 4. Set a breakpoint beside a line number. Try Left/Right and Shift+Left/Right
    outside the editor. Click or drag the line numbers to select whole lines.
 5. Press Check. Verify results update without navigation. Change the function to

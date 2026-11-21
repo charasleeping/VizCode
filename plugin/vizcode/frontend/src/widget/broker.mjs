@@ -6,13 +6,26 @@ let active;
 let queued;
 let generation = 0;
 let language = 'python3';
+let adapters=[];
+const forLanguage=value=>adapters.find(a=>a.languages.some(l=>l.toLowerCase()===String(value).toLowerCase()));
 const send = (type, id, payload) => parent.postMessage({ version: 1, instance, type, id, payload }, host);
-const retire = record => { if (record) { clearTimeout(record.timer); record.worker.terminate(); } };
+const retire = record => {
+    if(!record)return;clearTimeout(record.timer);
+    if(record.job)void fetch(new URL('../v1/traces/'+record.job.id,import.meta.url),{method:'DELETE',keepalive:true,headers:{Authorization:'Bearer '+record.job.token}}).catch(()=>{});
+    if(record.remote && record.executing && !record.finished && !record.job){
+        // Keep the trusted transport worker alive long enough to cancel a job
+        // whose creation response is still in flight. Student WASM is killed immediately.
+        record.worker.postMessage({type:'cancel'});
+        record.timer=setTimeout(()=>record.worker.terminate(),15000);
+    }else record.worker.terminate();
+};
 
 function prepare() {
     if (spare) return;
     const record = { worker: new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' }),
         ready: false, id: 'warm-' + ++generation, timer: undefined };
+    const selected=forLanguage(language);record.remote=selected?.transport!=='browser';
+    record.worker.addEventListener('message',event=>{if(event.data?.type==='cancelled'){clearTimeout(record.timer);record.worker.terminate();}});
     spare = record;
     const fail = reason => {
         if (spare !== record) return;
@@ -33,7 +46,7 @@ function prepare() {
             drain();
         } else if (event.data.type === 'error') fail(event.data.payload);
     };
-    record.worker.postMessage({ type: 'initialize', id: record.id, language });
+    record.worker.postMessage({ type: 'initialize', id: record.id, language, adapter:forLanguage(language) });
 }
 
 function drain() {
@@ -44,19 +57,20 @@ function drain() {
     clearTimeout(record.timer);
     spare = undefined;
     active = record;
-    record.id = request.id;
+    record.id = request.id;record.executing=true;
     const finish = (type, payload) => {
         if (active !== record) return;
         active = undefined;
-        retire(record);
+        record.finished=true;retire(record);
         send(type, request.id, payload);
         drain();
     };
-    record.timer = setTimeout(() => finish('error', language === 'cpp' ? 'C++ compilation timed out (60 seconds)' : 'Execution timed out (10 seconds)'), ['cpp','java'].includes(language) ? 60000 : 10000);
-    record.worker.onerror = () => finish('error', 'Python execution unavailable');
+    record.timer = setTimeout(() => finish('error', record.remote ? 'Tracing timed out (60 seconds)' : 'Execution timed out (10 seconds)'), record.remote ? 60000 : 10000);
+    record.worker.onerror = () => finish('error', 'Execution unavailable');
     record.worker.onmessage = event => {
         const result = event.data;
         if (result?.id !== request.id) return;
+        if (result.type === 'job') { record.job=result.payload; return; }
         if (result.type === 'compiled') { clearTimeout(record.timer); record.timer = setTimeout(() => finish('error', 'Execution timed out (10 seconds)'), 10000); return; }
         if (typeof result.payload !== 'string') return;
         if (result.type === 'result') {
@@ -82,13 +96,13 @@ window.addEventListener('message', event => {
     const message = event.data;
     if (event.source !== parent || event.origin !== host || !message || message.version !== 1 ||
         message.instance !== instance || typeof message.id !== 'string') return;
-    if (message.type === 'prepare') { if(['python3','cpp','java'].includes(message.language) && message.language!==language){dispose();language=message.language;} prepare(); return; }
+    if (message.type === 'prepare') { if(forLanguage(message.language) && message.language!==language){dispose();language=message.language;} prepare(); return; }
     if (message.type === 'cancel') { cancel(message.id); return; }
     if (message.type === 'dispose') { dispose(); return; }
     if (message.type !== 'execute') return;
     const request = message.payload;
     const nextLanguage = request?.language || 'python3';
-    if (!['python3', 'cpp', 'java'].includes(nextLanguage)) { send('error', message.id, 'Unsupported language'); return; }
+    if (!forLanguage(nextLanguage)) { send('error', message.id, 'Unsupported language'); return; }
     if (nextLanguage !== language) { dispose(); language = nextLanguage; }
     if (!request || !['code', 'stdin', 'scratchCode'].every(key => typeof request[key] === 'string' && request[key].length <= 100000)) {
         send('error', message.id, 'Source or Input exceeds limit');
@@ -108,4 +122,4 @@ window.addEventListener('message', event => {
     drain();
 });
 window.addEventListener('pagehide', dispose);
-send('ready', '', undefined);
+fetch(new URL('../v1/adapters',import.meta.url)).then(r=>{if(!r.ok)throw Error('Adapter registry unavailable');return r.json();}).then(c=>{adapters=c.adapters;send('ready','',{adapters});}).catch(error=>send('ready','',{adapters:[],error:error.message}));

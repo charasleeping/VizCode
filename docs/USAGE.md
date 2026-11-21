@@ -63,7 +63,7 @@ operations do not become the best answer.
 | Language | Live debugger | Supplied grading environment |
 | --- | --- | --- |
 | Python | Python 3.14.2 / Pyodide | Python 3.14.4 |
-| C++ | C++17 / WebAssembly Clang | GCC 15.2 |
+| C++ | C++17 / native GCC and GDB service | GCC 15.2 |
 | Java | OpenJDK 21 / JDI service | OpenJDK 21 |
 
 Existing sites use their configured Jobe toolchains. The supplied Java services
@@ -71,8 +71,19 @@ currently install 21.0.13.0.3; patch versions come from OS repositories. To matc
 C++17 grading, configure `compileargs` as `["-std=c++17", "-Wall"]` where appropriate
 for the selected CodeRunner prototype.
 
-- C++ return steps do not yet show the returned value. Assign the call result to
-  a local variable or print it to inspect it.
+- C++ return steps show `__return__`. Callee locals whose storage has expired
+  are not presented as live values. Locals not yet reliably available on the
+  current source line are marked explicitly. Object inspection is bounded;
+  custom allocators, placement construction, unions and arbitrary pointer
+  reinterpretation do not receive a full-object guarantee.
+  Register-held return objects can show their values while explicitly indicating
+  that storage identity is unavailable.
+- Python snapshots include stored instance fields and slots without calling
+  properties or user formatting methods. Large integers retain their exact digits.
+  Object identity is based on runtime IDs, with weak-reference lifetime checks
+  where Python permits them; address reuse for non-weak-referenceable values
+  between observed steps remains a limitation. Garbage-collection timing is not
+  visualized.
 - Java debugging supports single-file, single-thread console programs. Automatic
   calls support eligible static methods. Call private/instance methods and
   ambiguous overloads from the student's own program.
@@ -94,3 +105,10 @@ compilers affect totals. These measurements are not function-only benchmarks.
 Captured internal Python/GCC compiler crashes retry once before caching. Repeated
 crashes remain ungraded and add no grading penalty. Ordinary syntax errors and
 student runtime failures retain their native CodeRunner outcomes.
+
+## Additional languages
+
+Administrators may register self-hosted tracing adapters or DAP profiles using
+[the adapter API](ADAPTERS.md). CodeRunner must independently support grading the
+question language. Plain-text editing is available when highlighting is absent;
+missing object-identity, return-value or input capabilities are shown in the editor.

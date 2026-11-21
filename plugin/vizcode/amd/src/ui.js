@@ -3,7 +3,7 @@
 define(['core/ajax','core/str','qtype_coderunner/showdiff'], function(Ajax,Str,ShowDiff) {
     let bundle;
     const labels={python3:'Python',cpp:'C++',java:'Java'};
-    const normalize=value=>({python:'python3',python3:'python3',cpp:'cpp','c++':'cpp',c_cpp:'cpp',java:'java'})[String(value).toLowerCase()];
+    const normalize=value=>({python:'python3','c++':'cpp',c_cpp:'cpp'})[String(value).toLowerCase()] || String(value).toLowerCase();
     function load() {
         if(window.VizCode)return Promise.resolve(window.VizCode);
         if(!bundle)bundle=new Promise((resolve,reject)=>{
@@ -45,10 +45,10 @@ define(['core/ajax','core/str','qtype_coderunner/showdiff'], function(Ajax,Str,S
             autoTraceOnMount:!!this.config.usageid,tracingEnabled:!!this.config.usageid,
             initialFunctions:aux.functions,initialBreakpoints:aux.breakpoints,initialInput:aux.stdin || '',
             initialInputHistory:aux.inputHistory,initialInputEof:aux.inputEof,
-            getJavaTicket:async request=>{
+            getTraceTicket:async request=>{
                 const bytes=new TextEncoder().encode(JSON.stringify(request));
                 const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(b=>b.toString(16).padStart(2,'0')).join('');
-                const result=await Ajax.call([{methodname:'local_vizcode_java_ticket',args:{usageid:this.config.usageid,slot:this.config.slot,sourcehash:hash}}])[0];
+                const result=await Ajax.call([{methodname:'local_vizcode_trace_ticket',args:{usageid:this.config.usageid,slot:this.config.slot,sourcehash:hash,adapter:request.adapterId,language:request.language}}])[0];
                 return result.ticket;
             },
             onChange:code=>{
@@ -67,7 +67,7 @@ define(['core/ajax','core/str','qtype_coderunner/showdiff'], function(Ajax,Str,S
             this.buttons=[];
             for(const option of selector.options){
                 const language=normalize(option.value);if(!language)continue;
-                const button=document.createElement('button');button.type='button';button.textContent=labels[language];button.disabled=this.textarea.readOnly;
+                const button=document.createElement('button');button.type='button';button.textContent=labels[language] || option.text || language;button.disabled=this.textarea.readOnly;
                 button.dataset.language=language;button.setAttribute('aria-pressed',String(language===this.language));
                 button.addEventListener('click',()=>{selector.value=option.value;selector.dispatchEvent(new Event('change',{bubbles:true}));this.setLanguage(option.value);},{signal:this.events.signal});
                 bar.append(button);this.buttons.push(button);

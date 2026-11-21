@@ -77,7 +77,7 @@ FLOAT_PRECISION = 4
 
 
 from collections import defaultdict
-import re, types
+import re, types, weakref
 import sys
 import math
 typeRE = re.compile("<type '(.*)'>")
@@ -121,6 +121,8 @@ PRIMITIVE_TYPES = (int, long, float, str, unicode, bool, type(None))
 
 def encode_primitive(dat):
   t = type(dat)
+  if t is int and (dat > 9007199254740991 or dat < -9007199254740991):
+    return ['IMPORTED_FAUX_PRIMITIVE', str(dat)]
   if t is float:
     if math.isinf(dat):
       if dat > 0:
@@ -134,7 +136,7 @@ def encode_primitive(dat):
       if dat == int(dat):
         return ['SPECIAL_FLOAT', '%.1f' % dat]
       else:
-        return round(dat, FLOAT_PRECISION)
+        return dat
   elif t is str and (not is_python3):
     # hack only for Python 2 strings ... always turn into unicode
     # and display '?' when it's not valid unicode
@@ -179,7 +181,10 @@ class ObjectEncoder:
     self.render_heap_primitives = parent.render_heap_primitives
 
     self.id_to_small_IDs = {}
+    self.id_to_weak_refs = {}
     self.cur_small_ID = 1
+    self.inspection_depth = 0
+    self.inspection_values = 0
 
     # wow, creating unique identifiers for lambdas is quite annoying,
     # especially if we want to properly differentiate:
@@ -252,10 +257,17 @@ class ObjectEncoder:
 
 
   def reset_heap(self):
+    # An address absent from a complete snapshot must not identify a newly
+    # allocated non-weak-referenceable container later in the trace.
+    observed = set(self.encoded_heap_objects)
+    for address, small_id in list(self.id_to_small_IDs.items()):
+      if address not in self.id_to_weak_refs and small_id not in observed:
+        self.id_to_small_IDs.pop(address, None)
     # VERY IMPORTANT to reassign to an empty dict rather than just
     # clearing the existing dict, since get_heap() could have been
     # called earlier to return a reference to a previous heap state
     self.encoded_heap_objects = {}
+    self.inspection_values = 0
 
   def set_function_parent_frame_ID(self, ref_obj, enclosing_frame_id):
     assert ref_obj[0] == 'REF'
@@ -267,6 +279,16 @@ class ObjectEncoder:
   # return either a primitive object or an object reference;
   # and as a side effect, update encoded_heap_objects
   def encode(self, dat, get_parent):
+    self.inspection_values += 1
+    if self.inspection_depth >= 12 or self.inspection_values > 10000:
+      return ['IMPORTED_FAUX_PRIMITIVE', '<snapshot limit>']
+    self.inspection_depth += 1
+    try:
+      return self._encode(dat, get_parent)
+    finally:
+      self.inspection_depth -= 1
+
+  def _encode(self, dat, get_parent):
     """Encode a data value DAT using the GET_PARENT function for parent ids."""
     # primitive type
     if not self.render_heap_primitives and type(dat) in PRIMITIVE_TYPES:
@@ -280,9 +302,10 @@ class ObjectEncoder:
         # something legit for getmodule(). e.g., "from io import StringIO"
         # so TRY getmodule *first* and then fall back on getsourcefile
         # since getmodule seems more robust empirically ...
-        gsf = inspect.getmodule(dat).__file__
+        target = dat if type(dat) in (types.FunctionType, types.MethodType) or is_class(dat) else type(dat)
+        gsf = inspect.getmodule(target).__file__
         if not gsf:
-            gsf = inspect.getsourcefile(dat)
+            gsf = inspect.getsourcefile(target)
 
         # a hacky heuristic is that if gsf is an absolute path, then it's likely
         # to be some library function and *not* in user-defined code
@@ -306,7 +329,7 @@ class ObjectEncoder:
       # in da visualization - ugh #hacky
       if (is_instance(dat) and
           type(dat) not in (types.FunctionType, types.MethodType, types.BuiltinFunctionType, types.BuiltinMethodType) and
-          hasattr(dat, '__class__') and (get_name(dat.__class__) != 'ABCMeta')):
+          get_name(type(dat)) != 'ABCMeta'):
         is_externally_defined = False
 
       # if this is an externally-defined object (i.e., from an imported
@@ -354,6 +377,13 @@ class ObjectEncoder:
             pass
         return ['IMPORTED_FAUX_PRIMITIVE', label + ' (hidden)'] # punt early!
 
+      previous = self.id_to_weak_refs.get(my_id)
+      if previous is not None and previous() is not dat:
+        self.id_to_small_IDs.pop(my_id, None)
+      try:
+        self.id_to_weak_refs[my_id] = weakref.ref(dat)
+      except TypeError:
+        self.id_to_weak_refs.pop(my_id, None)
       try:
         my_small_id = self.id_to_small_IDs[my_id]
       except KeyError:
@@ -371,6 +401,8 @@ class ObjectEncoder:
 
 
       # major side-effect!
+      if len(self.encoded_heap_objects) >= 300:
+        return ['IMPORTED_FAUX_PRIMITIVE', '<object limit>']
       new_obj = []
       self.encoded_heap_objects[my_small_id] = new_obj
 
@@ -378,19 +410,27 @@ class ObjectEncoder:
 
       if typ == list:
         new_obj.append('LIST')
-        for e in dat:
+        for e in dat[:200]:
           new_obj.append(self.encode(e, get_parent))
+        if len(dat) > 200: new_obj.append(['IMPORTED_FAUX_PRIMITIVE', '<truncated>'])
       elif typ == tuple:
         new_obj.append('TUPLE')
-        for e in dat:
+        for e in dat[:200]:
           new_obj.append(self.encode(e, get_parent))
+        if len(dat) > 200: new_obj.append(['IMPORTED_FAUX_PRIMITIVE', '<truncated>'])
       elif typ == set:
         new_obj.append('SET')
-        for e in dat:
+        for index, e in enumerate(dat):
+          if index >= 200:
+            new_obj.append(['IMPORTED_FAUX_PRIMITIVE', '<truncated>'])
+            break
           new_obj.append(self.encode(e, get_parent))
       elif typ == dict:
         new_obj.append('DICT')
-        for (k, v) in dat.items():
+        for index, (k, v) in enumerate(dat.items()):
+          if index >= 200:
+            new_obj.append([['IMPORTED_FAUX_PRIMITIVE', '<truncated>'], None])
+            break
           # don't display some built-in locals ...
           if k not in ('__module__', '__return__', '__locals__'):
             new_obj.append([self.encode(k, get_parent), self.encode(v, get_parent)])
@@ -490,56 +530,33 @@ class ObjectEncoder:
 
 
   def encode_class_or_instance(self, dat, new_obj):
-    """Encode dat as a class or instance."""
+    """Inspect stored fields without invoking student formatting or properties."""
+    attrs = {}
     if is_instance(dat):
-      if hasattr(dat, '__class__'):
-        # common case ...
-        class_name = get_name(dat.__class__)
-      else:
-        # super special case for something like
-        # "from datetime import datetime_CAPI" in Python 3.2,
-        # which is some weird 'PyCapsule' type ...
-        # http://docs.python.org/release/3.1.5/c-api/capsule.html
-        class_name = get_name(type(dat))
-
-      pprint_str = None
-      # do you or any of your superclasses have a __str__ field? if so, pretty-print yourself!
-      if hasattr(dat, '__str__'):
-        try:
-          pprint_str = dat.__str__()
-
-          # sometimes you'll get 'trivial' pprint_str like: '<__main__.MyObj object at 0x10f465cd0>'
-          # or '<module 'collections' ...'
-          # IGNORE THOSE!!!
-          if pprint_str[0] == '<' and pprint_str[-1] == '>' and (' at ' in pprint_str or pprint_str.startswith('<module')):
-            pprint_str = None
-        except:
-          pass
-
-      # TODO: filter for trivial-looking pprint_str like those produced
-      # by object.__str__
-      if pprint_str:
-        new_obj.extend(['INSTANCE_PPRINT', class_name, pprint_str])
-      else:
-        new_obj.extend(['INSTANCE', class_name])
-
-      # don't traverse inside modules, or else risk EXPLODING the visualization
-      if class_name == 'module':
-        return
+      cls = type(dat)
+      new_obj.extend(['INSTANCE', type.__getattribute__(cls, '__name__')])
+      # Read only interpreter-owned storage descriptors, never user getters.
+      for base in reversed(type.__getattribute__(cls, '__mro__')):
+        for name, descriptor in type.__getattribute__(base, '__dict__').items():
+          if name == '__dict__' and type(descriptor) is types.GetSetDescriptorType:
+            try: attrs.update(descriptor.__get__(dat, cls))
+            except (AttributeError, TypeError): pass
+          elif type(descriptor) is types.MemberDescriptorType:
+            try: attrs[name] = descriptor.__get__(dat, cls)
+            except AttributeError: pass
     else:
-      superclass_names = [e.__name__ for e in dat.__bases__ if e is not object]
-      new_obj.extend(['CLASS', get_name(dat), superclass_names])
+      superclass_names = [type.__getattribute__(e, '__name__') for e in type.__getattribute__(dat, '__bases__') if e is not object]
+      new_obj.extend(['CLASS', type.__getattribute__(dat, '__name__'), superclass_names])
+      attrs = type.__getattribute__(dat, '__dict__')
 
     # traverse inside of its __dict__ to grab attributes
     # (filter out useless-seeming ones, based on anecdotal observation):
     hidden = ('__doc__', '__module__', '__return__', '__dict__',
         '__locals__', '__weakref__', '__qualname__')
-    if hasattr(dat, '__dict__'):
-      user_attrs = sorted([e for e in dat.__dict__ if e not in hidden])
-    else:
-      user_attrs = []
+    user_attrs = sorted([e for e in attrs if e not in hidden])
 
-    for attr in user_attrs:
+    for attr in user_attrs[:80]:
       if not self.should_hide_var(attr):
-        new_obj.append([self.encode(attr, None), self.encode(dat.__dict__[attr], None)])
+        new_obj.append([self.encode(attr, None), self.encode(attrs[attr], None)])
+    if len(user_attrs) > 80: new_obj.append(['…', ['IMPORTED_FAUX_PRIMITIVE', '<truncated>']])
 

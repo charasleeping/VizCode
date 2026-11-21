@@ -1,0 +1,1 @@
+{"command":["/opt/debugpy/bin/python","-m","debugpy.adapter"],"extension":".py","launch":{"type":"python","request":"launch","name":"VizCode","python":"/opt/debugpy/bin/python","console":"internalConsole","justMyCode":true},"exceptionFilters":["uncaught"]}

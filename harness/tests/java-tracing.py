@@ -42,3 +42,11 @@ r=run('public class Main { public static void main(String[] args){ long value=Lo
 assert r['trace'][-1]['stdout']=='9223372036854775807\n',r
 assert '9223372036854775807' in json.dumps(r) and 'IMPORTED_FAUX_PRIMITIVE' in json.dumps(r),r
 print('Large Java long values retain exact digits in memory snapshots and output.')
+r=run('class Box { int value=7; Box next; } public class Main { static Box same(Box x) { x.value=9; return x; } public static void main(String[] args) { Box b=new Box(); b.next=b; Box alias=same(b); System.out.println(alias.value); } }')
+returns=[t for t in r['trace'] if t.get('event')=='return' and any(f['func_name'].endswith('.same') for f in t.get('stack_to_render',[]))]
+assert returns,r
+for t in returns:
+ frame=next(f for f in t['stack_to_render'] if f['func_name'].endswith('.same'));locals=frame['encoded_locals']
+ assert locals['__return__']==locals['x'],t
+ node=t['heap'][str(locals['x'][1])];assert ['value',9] in node and ['next',locals['x']] in node,t
+print('Java return-object mutation, aliases and self-reference share one snapshot identity map.')

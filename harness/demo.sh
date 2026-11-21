@@ -37,7 +37,6 @@ case "$action" in
         npm ci --prefix plugin/vizcode/frontend
         npm ci --prefix harness
         node harness/scripts/bootstrap.mjs
-        node harness/scripts/bootstrap-cpp.mjs
         node harness/scripts/build-vizcode.mjs
         sh harness/coderunner-fixture/install.sh
         ;;

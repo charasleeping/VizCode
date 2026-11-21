@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vizcode.invalid/api/v1/trace.schema.json",
+  "title": "VizCode trace document 1.0",
+  "type": "object",
+  "required": [
+    "version",
+    "code",
+    "events"
+  ],
+  "properties": {
+    "version": {
+      "const": "1.0"
+    },
+    "code": {
+      "type": "string",
+      "maxLength": 100000
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        },
+        "calls": {
+          "type": "string"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 1001,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "inputRequest": {
+      "type": "object",
+      "required": [
+        "kind",
+        "prompt",
+        "step"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "line",
+            "all"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "value": {
+      "oneOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "type",
+                "value"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "primitive"
+                },
+                "type": {
+                  "const": "number"
+                },
+                "value": {
+                  "type": "number"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "type",
+                "value"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "primitive"
+                },
+                "type": {
+                  "const": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "type",
+                "value"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "primitive"
+                },
+                "type": {
+                  "const": "boolean"
+                },
+                "value": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "type",
+                "value"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "primitive"
+                },
+                "type": {
+                  "const": "null"
+                },
+                "value": {
+                  "type": "null"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "integer"
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^-?[0-9]+$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "reference"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "unavailable",
+                "unsupported",
+                "expired",
+                "truncated"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "encoding"
+          ],
+          "description": "Compatibility-only encoding used by existing built-ins; new adapters use typed values.",
+          "properties": {
+            "kind": {
+              "const": "display"
+            },
+            "encoding": {
+              "type": "array"
+            }
+          }
+        }
+      ]
+    },
+    "variable": {
+      "type": "object",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "locals"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "locals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variable"
+          },
+          "maxItems": 10000
+        },
+        "highlighted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": [
+            "kind",
+            "type"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "instance",
+                "sequence",
+                "mapping",
+                "opaque"
+              ]
+            },
+            "type": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/variable"
+              }
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/value"
+              }
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/value"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/value"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "encoding"
+          ],
+          "description": "Compatibility-only object encoding",
+          "properties": {
+            "encoding": {
+              "type": "array"
+            }
+          }
+        }
+      ]
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "kind",
+        "location",
+        "frames",
+        "objects",
+        "stdout"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "step_line",
+            "call",
+            "return",
+            "exception",
+            "uncaught_exception",
+            "instruction_limit_reached"
+          ]
+        },
+        "location": {
+          "type": "object",
+          "required": [
+            "source",
+            "line"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "answer",
+                "calls"
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frame"
+          },
+          "maxItems": 64
+        },
+        "globals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variable"
+          }
+        },
+        "objects": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/object"
+          }
+        },
+        "stdout": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "diagnostic": {
+          "type": "string"
+        },
+        "return": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "value",
+                "void",
+                "unavailable",
+                "exceptional"
+              ]
+            },
+            "value": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      }
+    }
+  }
+}

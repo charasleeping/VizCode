@@ -20,8 +20,16 @@ services:
     build: {context: ../../services/java, dockerfile: Dockerfile.job}
     image: vizcode-java-job:21
     profiles: [build]
+  cpp-job:
+    build: {context: ../../services/tracing/native-cpp}
+    image: vizcode-cpp-job:1
+    profiles: [build]
+  debugpy-job:
+    build: {context: ../../services/tracing/adapters, dockerfile: Dockerfile.debugpy}
+    image: vizcode-debugpy-job:1
+    profiles: [dap-build]
   java-supervisor:
-    build: {context: ../../services/java, dockerfile: Dockerfile.supervisor}
+    build: {context: ../.., dockerfile: services/tracing/Dockerfile.supervisor}
     environment:
       VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set the supervisor key}
     volumes: [/var/run/docker.sock:/var/run/docker.sock]
@@ -36,7 +44,8 @@ services:
     ports: ["127.0.0.1:4102:4101"]
     environment:
       VIZCODE_FRAME_ANCESTORS: http://localhost:4115 http://localhost:4100
-      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing key}
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:-}
+      VIZCODE_TRACE_KEY: ${VIZCODE_TRACE_KEY:-${VIZCODE_JAVA_KEY:?Set the tracing signing key}}
       VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set the supervisor key}
     depends_on:
       java-supervisor: {condition: service_healthy}
@@ -50,7 +59,8 @@ services:
     build: {context: ../.., dockerfile: harness/coderunner-fixture/Dockerfile}
     ports: ["127.0.0.1:4115:80"]
     environment:
-      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing key}
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:-}
+      VIZCODE_TRACE_KEY: ${VIZCODE_TRACE_KEY:-${VIZCODE_JAVA_KEY:?Set the tracing signing key}}
     depends_on:
       database: {condition: service_healthy}
       jobe: {condition: service_healthy}

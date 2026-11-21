@@ -3,10 +3,10 @@ set -eu
 cd "$(dirname "$0")"
 if [ ! -f .env ]; then
     umask 077
-    python3 -c 'import secrets;print("VIZCODE_JAVA_KEY="+secrets.token_hex(32));print("VIZCODE_SUPERVISOR_KEY="+secrets.token_hex(32))' > .env
+    python3 -c 'import secrets;print("VIZCODE_TRACE_KEY="+secrets.token_hex(32));print("VIZCODE_SUPERVISOR_KEY="+secrets.token_hex(32))' > .env
 fi
 compose() { sh ../compose.sh -f compose.yaml "$@"; }
-compose build java-job jobe
+compose build java-job cpp-job jobe
 compose up -d --build
 if ! compose exec -T moodle test -f /var/moodleconfig/config.php; then
     compose cp config.php moodle:/var/moodleconfig/config.php

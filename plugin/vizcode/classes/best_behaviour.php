@@ -9,6 +9,25 @@ class best_behaviour extends \qbehaviour_adaptive_adapted_for_coderunner_base {
         $tries=(int)$this->qa->get_last_behaviour_var('_try',0);
         $GLOBALS['local_vizcode_metrics']=[];
         $status=parent::process_submit($pendingstep,$isprecheck);
+        if (!$isprecheck && $status===\question_attempt::DISCARD && !$this->qa->get_state()->is_finished()) {
+            $checked=$this->qa->get_last_step_with_behaviour_var('_try');
+            // Native CodeRunner discards an identical recheck even after an
+            // intervening draft. Restore its recorded feedback/state, not a new
+            // grading operation or another try/penalty.
+            if (!$checked->get_behaviour_var('_precheck',0) && $checked->has_behaviour_var('_rawfraction') &&
+                    $checked->has_qt_var('_testoutcome') && $checked->get_state()!==\question_state::$invalid &&
+                    $this->question->is_same_response($pendingstep->get_qt_data(),$checked->get_qt_data()) &&
+                    ($this->qa->get_state()!==$checked->get_state() ||
+                    !$this->question->is_same_response($pendingstep->get_qt_data(),$this->qa->get_last_qt_data()))) {
+                $pendingstep->set_qt_var('_testoutcome',$checked->get_qt_var('_testoutcome'));
+                foreach ($checked->get_behaviour_data() as $key=>$value) {
+                    if (str_starts_with($key,'_')) $pendingstep->set_behaviour_var($key,$value);
+                }
+                $pendingstep->set_state($checked->get_state());$pendingstep->set_fraction($this->qa->get_fraction());
+                $pendingstep->set_new_response_summary($this->question->summarise_response($pendingstep->get_qt_data()));
+                return \question_attempt::KEEP;
+            }
+        }
         if ($status===\question_attempt::KEEP && $pendingstep->get_state()===\question_state::$invalid && $pendingstep->has_qt_var('_testoutcome')) throw new \moodle_exception('gradingunavailable','local_vizcode','',null,$this->question->get_validation_error($pendingstep->get_qt_data()));
         if ($isprecheck && $status===\question_attempt::KEEP && $pendingstep->has_qt_var('_testoutcome')) $pendingstep->set_behaviour_var('_vizcode_metrics',json_encode(integration::metrics(),JSON_THROW_ON_ERROR));
         if (!$isprecheck && $status===\question_attempt::KEEP && $pendingstep->has_behaviour_var('_rawfraction') &&

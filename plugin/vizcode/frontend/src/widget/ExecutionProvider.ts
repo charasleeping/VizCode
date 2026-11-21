@@ -1,7 +1,8 @@
 import type {FunctionState} from './functionDiscovery';
-export interface Request { diagnose?: boolean; functions?: FunctionState; language?: 'python3' | 'cpp' | 'java'; code: string; scratchCode: string; stdin: string; interactiveInput?: boolean; inputEof?: boolean; javaTicket?: string; }
+export interface Request { diagnose?: boolean; functions?: FunctionState; language?: string; adapterId?: string; adapterVersion?: string; sourceProfile?: string; operation?: string; code: string; scratchCode: string; stdin: string; interactiveInput?: boolean; inputEof?: boolean; javaTicket?: string; traceTicket?: string; }
 
 export class ExecutionProvider {
+    private adapters: any[] = [];
     private frame: HTMLIFrameElement;
     private ready: Promise<void>;
     private rejectReady: (error: Error) => void;
@@ -37,7 +38,7 @@ export class ExecutionProvider {
                 const message = event.data;
                 if (event.origin !== this.origin || event.source !== this.frame.contentWindow || !message ||
                     message.version !== 1 || message.instance !== this.instance) return;
-                if (message.type === 'ready' && message.id === '') { clearTimeout(this.readyTimer); resolve(); }
+                if (message.type === 'ready' && message.id === '') { clearTimeout(this.readyTimer); this.adapters=message.payload?.adapters || [];message.payload?.error?reject(new Error(message.payload.error)):resolve(); }
                 else if (this.pending && message.id === this.pending.id) {
                     if (message.type === 'runtime-ready') this.diagnostic('PYODIDE_READY');
                     else if (['result', 'error'].includes(message.type) && typeof message.payload === 'string') {
@@ -57,11 +58,14 @@ export class ExecutionProvider {
     private send(type: string, id: string, payload?: Request) {
         this.frame.contentWindow?.postMessage({ version: 1, instance: this.instance, type, id, payload, language: this.language }, this.origin);
     }
+    async describe(language: string) {await this.ready;const adapter=this.adapters.find(a=>a.languages.some(l=>l.toLowerCase()===language.toLowerCase()));if(!adapter)throw new Error('Visualization is not configured for '+language);return adapter;}
     async prepare() { await this.ready; if (!this.disposed) this.send('prepare', ''); }
     async execute(request: Request, ticket?: (request: Request)=>Promise<string>): Promise<string> {
         this.language = request.language || 'python3';
         const epoch = ++this.epoch;
-        if(request.language==='java'){if(!ticket)throw new Error('Java tracing is not configured.'); request={...request,javaTicket:await ticket(request)};}
+        const adapter=await this.describe(this.language);
+        request={...request,adapterId:adapter.id,adapterVersion:adapter.version,sourceProfile:'auto'};
+        if(adapter.transport!=='browser'){if(!ticket)throw new Error('Server tracing is not configured.');request={...request,traceTicket:await ticket(request)} as Request;}
         await this.ready;
         if (this.disposed || epoch !== this.epoch) throw new Error('Execution canceled');
         return new Promise((resolve, reject) => {

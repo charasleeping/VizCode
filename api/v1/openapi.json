@@ -1,0 +1,468 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VizCode self-hosted tracing API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://execution.example.invalid"
+    }
+  ],
+  "paths": {
+    "/v1/adapters": {
+      "get": {
+        "summary": "List enabled public adapter descriptors",
+        "responses": {
+          "200": {
+            "description": "Registry version and adapter descriptors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "version",
+                    "adapters"
+                  ],
+                  "properties": {
+                    "version": {
+                      "const": "1.0"
+                    },
+                    "adapters": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdapterDescriptor"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/traces": {
+      "post": {
+        "summary": "Start a bounded trace job",
+        "security": [
+          {
+            "ticket": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Job id and private job token; poll the trace job URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request, ticket or unavailable adapter"
+          }
+        }
+      }
+    },
+    "/v1/discover": {
+      "post": {
+        "summary": "Discover functions without executing student code",
+        "security": [
+          {
+            "ticket": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TraceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Job id and private job token; poll the trace job URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request, ticket or unavailable adapter"
+          }
+        }
+      }
+    },
+    "/v1/traces/{id}": {
+      "get": {
+        "summary": "Poll a job; completed trace results follow trace.schema.json",
+        "security": [
+          {
+            "jobToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status/result or cancellation confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown job or invalid job token"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel and remove a job",
+        "security": [
+          {
+            "jobToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status/result or cancellation confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "cancelled"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown job or invalid job token"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ticket": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "jobToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "TraceRequest": {
+        "type": "object",
+        "required": [
+          "adapterId",
+          "adapterVersion",
+          "sourceProfile",
+          "language",
+          "code",
+          "stdin",
+          "scratchCode"
+        ],
+        "properties": {
+          "adapterId": {
+            "type": "string"
+          },
+          "adapterVersion": {
+            "type": "string"
+          },
+          "sourceProfile": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "stdin": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "scratchCode": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "functions": {
+            "type": "object",
+            "required": [
+              "version",
+              "rows"
+            ],
+            "properties": {
+              "version": {
+                "const": 1
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FunctionRow"
+                }
+              }
+            }
+          },
+          "interactiveInput": {
+            "type": "boolean"
+          },
+          "inputEof": {
+            "type": "boolean"
+          },
+          "diagnose": {
+            "type": "boolean"
+          }
+        }
+      },
+      "JobCreated": {
+        "type": "object",
+        "required": [
+          "id",
+          "token",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "status": {
+            "const": "running"
+          }
+        }
+      },
+      "FunctionRow": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "reason",
+          "checked",
+          "args",
+          "parameters"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "optional"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "optional": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "DiscoveryResult": {
+        "type": "object",
+        "required": [
+          "valid",
+          "locked",
+          "rows"
+        ],
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "rows": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/FunctionRow"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "mapping": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "JobStatus": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "running",
+              "complete",
+              "failed"
+            ]
+          },
+          "result": {
+            "oneOf": [
+              {
+                "$ref": "./trace.schema.json"
+              },
+              {
+                "$ref": "#/components/schemas/DiscoveryResult"
+              }
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "AdapterDescriptor": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "label",
+          "languages",
+          "transport",
+          "profiles",
+          "capabilities"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transport": {
+            "enum": [
+              "browser",
+              "container",
+              "stdio",
+              "http",
+              "dap"
+            ]
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "editorMode": {
+            "type": "string"
+          },
+          "renderer": {
+            "type": "string"
+          },
+          "discovery": {
+            "type": "string"
+          },
+          "legacySeparator": {
+            "type": "string"
+          },
+          "inputPolicy": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

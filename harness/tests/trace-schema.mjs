@@ -1,0 +1,11 @@
+import {createRequire} from 'node:module';import {readFileSync} from 'node:fs';import {spawnSync} from 'node:child_process';import assert from 'node:assert/strict';
+const require=createRequire(new URL('../../plugin/vizcode/frontend/package.json',import.meta.url));
+const Ajv=require('ajv/dist/2020').default;
+const schema=JSON.parse(readFileSync(new URL('../../api/v1/trace.schema.json',import.meta.url)));
+const validate=new Ajv({strict:false}).compile(schema);
+const result=spawnSync('python3',['examples/adapters/stdio-python.py'],{input:JSON.stringify({code:'2\n3',stdin:'',scratchCode:''}),encoding:'utf8'});
+const document=JSON.parse(result.stdout);assert(validate(document),JSON.stringify(validate.errors));
+const wrong=structuredClone(document);wrong.events[0].frames[0].locals[0].value={kind:'primitive',type:'boolean',value:12};assert(!validate(wrong));
+const api=JSON.parse(readFileSync(new URL('../../api/v1/openapi.json',import.meta.url)));
+assert(api.components.schemas.JobStatus.properties.result);assert(api.components.schemas.DiscoveryResult);
+console.log('Published trace schema validates example output and rejects mismatched primitive types; OpenAPI describes job and discovery responses');

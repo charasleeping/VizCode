@@ -29,17 +29,19 @@ CodeRunner-rendered feedback. The client updates feedback/controls while keeping
 the live editor and newer edits. No hidden tests or threshold metadata are supplied
 to the debugger.
 
-## Java isolation and limits
+## Adapter isolation and limits
 
 The execution broker validates a short-lived, one-use ticket tied to the precise
 request. Moodle issues tickets only for an authorized editable VizCode question
-supporting Java. Ticket signing and supervisor secrets are separate; neither is
+supporting the requested language. Ticket signing and supervisor secrets are separate; neither is
 included in language code or question configuration.
 
-A private supervisor accepts only fixed Java tracing operations and launches a
-fixed image. Each job has no network, no mounted host files, a read-only filesystem,
-non-root UID, no added capabilities, no privilege escalation, 384 MB memory, one CPU,
-64 processes/threads and a 64 MB temporary filesystem. The trusted supervisor alone
+A private supervisor accepts only registered adapter operations and launches
+administrator-selected installed images. Each job has no network, no mounted host files, a read-only filesystem,
+non-root UID, no privilege escalation, one CPU and 64 processes/threads. Java uses 384 MB
+memory; native C++ uses 512 MB and container-scoped ptrace capability. Jobs use
+a bounded 128 MB temporary filesystem; native programs require executable
+temporary storage. The trusted supervisor alone
 can access Docker; its API is not published. Use a dedicated or suitably isolated
 Docker host for production.
 
@@ -48,8 +50,8 @@ processing. It reads frames, fields and arrays directly without invoking student
 getters or `toString()`. Requests support at most 100,000 characters each of source,
 local calls and input; traces are bounded to 1,000 steps, 2 MiB and 64 displayed
 frames. Output is capped at 64 KiB. Execution has a 10-second deadline; the supervisor
-has a 45-second total job deadline. There are at most two concurrent Java jobs and
-40 Java requests per user per minute per broker instance.
+has a 45-second total job deadline. There are at most two concurrent jobs and
+40 trace requests per user per minute per broker instance.
 
 Interactive input returns a bounded trace plus an input request, retires the job,
 and replays accumulated input after the next response. `System.in.readAllBytes()`
@@ -115,3 +117,18 @@ for their host architecture; a separate AMD64 runtime run remains unverified.
 The 81-check run predates the current three-language configuration. Subsequent
 checks cover Python/C++/Java grading, multilingual selection, Question Bank
 filtering and changed-answer warnings after in-place Check.
+
+## Adapter API
+
+The shared registry, API, capabilities and extension contracts are documented
+in [Adapters and API](ADAPTERS.md). C++ uses native GCC/GDB; Python retains locally
+served Pyodide; Java uses JDI. The `java-supervisor` Compose service name remains
+for upgrade compatibility and now hosts the adapter-neutral supervisor.
+
+The adapter update passed the Chromium and WebKit editor/integration suites,
+including native C++ returns/objects, Python stored-field inspection, an additional
+registered language, and cached-Check completion recovery. Native C++/Java,
+JSON/schema, DAP, grading, bridge, XML, backup/restore and a clean source build
+were also checked. The same 39 scenarios passed in Firefox in an ARM64 Linux
+container because Firefox could not launch on the macOS host. Actual Safari,
+Windows and AMD64 runtime verification remain separate items.

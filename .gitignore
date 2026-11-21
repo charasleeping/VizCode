@@ -35,3 +35,7 @@ __pycache__/
 # Internal maintainer reviews must never be tracked or packaged.
 /licensing/
 /docs/LICENSING*.md
+
+# Site-specific tracing adapters and deployment overrides.
+/adapters.json
+/adapters.compose.yaml

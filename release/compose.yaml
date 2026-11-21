@@ -9,8 +9,16 @@ services:
     build: {context: ./java, dockerfile: Dockerfile.job}
     image: vizcode-java-job:21
     profiles: [build]
+  cpp-job:
+    build: ./services/tracing/native-cpp
+    image: vizcode-cpp-job:1
+    profiles: [build]
+  debugpy-job:
+    build: {context: ./services/tracing/adapters, dockerfile: Dockerfile.debugpy}
+    image: vizcode-debugpy-job:1
+    profiles: [dap-build]
   java-supervisor:
-    build: {context: ./java, dockerfile: Dockerfile.supervisor}
+    build: {context: ., dockerfile: services/tracing/Dockerfile.supervisor}
     environment:
       VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set a supervisor secret}
     volumes: ["${VIZCODE_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"]
@@ -24,7 +32,8 @@ services:
     build: ./execution
     environment:
       VIZCODE_FRAME_ANCESTORS: ${VIZCODE_MOODLE_ORIGIN:?Set the Moodle origin}
-      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:?Set the Java signing secret}
+      VIZCODE_JAVA_KEY: ${VIZCODE_JAVA_KEY:-}
+      VIZCODE_TRACE_KEY: ${VIZCODE_TRACE_KEY:-${VIZCODE_JAVA_KEY:?Set the tracing signing secret}}
       VIZCODE_SUPERVISOR_KEY: ${VIZCODE_SUPERVISOR_KEY:?Set a supervisor secret}
     ports: ["127.0.0.1:4102:4101"]
     depends_on:

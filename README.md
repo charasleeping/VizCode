@@ -53,8 +53,8 @@ to install the latest changes while keeping your saved work.
 
 ## Requirements
 
-These are the external platform requirements. `1.0.0-beta.2` is VizCode's own
-development version, not another dependency to install. The local demo supplies
+These are the external platform requirements. VizCode's own beta release number
+is separate from its dependencies. The local demo supplies
 the platform versions below through its pinned sources and containers:
 
 | Component | Supported version |
@@ -81,7 +81,8 @@ Uploading the plugin ZIP is one part of the installation.
 3. Apply and verify the bridge using the included installer on the Moodle server.
 4. Start the execution service on a separate HTTPS hostname. Configure its URL
    in Site administration → Plugins → Local plugins → VizCode for CodeRunner.
-   Java debugging also uses the included Java service and a shared signing key.
+   Native C++ and Java debugging use the included private job supervisor and a
+   shared tracing signing key.
 5. Preview a question, try debugging and Check, then verify a sample submission.
 
 Follow the [complete installation steps](docs/INSTALL.md) for commands,
@@ -110,7 +111,7 @@ See [question setup](docs/USAGE.md#question-setup).
 | Language | Live debugging |
 | --- | --- |
 | Python | Python 3.14.2 through Pyodide |
-| C++ | C++17 through WebAssembly Clang |
+| C++ | C++17 through an isolated native GCC/GDB service |
 | Java | OpenJDK 21 service; single-file, single-thread console programs |
 
 Students get breakpoints, step controls, function-call rows, interactive input and
@@ -118,9 +119,14 @@ an Output panel. Check updates results without reloading the page. Final
 submission retains the answer earning the highest penalty-adjusted score within
 the attempt; the latest answer wins ties.
 
-C++ return steps currently do not display the returned value. Assign the result
-to a variable or print it to inspect it. Debugging dependencies can differ from
-those installed on the grading server. See [usage and limitations](docs/USAGE.md).
+C++ return steps display captured return values, including one-line recursive
+functions. Debugging dependencies can differ from those on the grading server.
+See [usage and limitations](docs/USAGE.md).
+
+Administrators can add languages through the [tracing API and adapter registry](docs/ADAPTERS.md),
+including a generic DAP connector. Adapters declare their visualization capabilities.
+After installation, visualization uses installed assets and self-hosted services;
+it does not download tools or contact third-party Internet services.
 
 ## Documentation
 
@@ -129,6 +135,7 @@ those installed on the grading server. See [usage and limitations](docs/USAGE.md
 | [Installation](docs/INSTALL.md) | Administrators adding VizCode to an existing CodeRunner site |
 | [Usage](docs/USAGE.md) | Teachers configuring questions and students using the debugger |
 | [Group testing](docs/TEAM-TESTING.md) | One-command local demo, accounts and a feature checklist |
+| [Adapters and API](docs/ADAPTERS.md) | Developers adding debuggers or languages |
 | [Development](docs/DEVELOPMENT.md) | Fresh-computer setup, demo accounts, builds and tests |
 | [Operations](docs/OPERATIONS.md) | Service limits, troubleshooting and verification coverage |
 

@@ -10,6 +10,7 @@ const persist=()=>sessionStorage.setItem('vizcode-widget-fixture',JSON.stringify
 const aux=state.aux[language] || {};
 textarea.value=state.drafts[language] ?? preloads[language] ?? '';
 window.widget=VizCode.create({initialCode:textarea.value,language,brokerUrl:'http://127.0.0.1:4104/live/broker.html',
+ getTraceTicket:async request=>(await fetch('/trace-ticket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)}).then(r=>r.json())).ticket,
  readOnly:textarea.readOnly,autoTraceOnMount:!query.has('noautotrace'),initialFunctions:aux.functions,initialBreakpoints:aux.breakpoints,
  initialInput:aux.stdin || '',initialInputHistory:aux.inputHistory,initialInputEof:aux.inputEof,
  onChange:code=>{if(!switching){textarea.value=code;state.drafts[language]=code;persist();}},

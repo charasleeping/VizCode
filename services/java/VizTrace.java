@@ -83,8 +83,10 @@ public final class VizTrace {
                     }else if(event instanceof MethodExitEvent exit){
                         if(isUser(exit.location().declaringType().name())){
                             int before=trace.size();snapshot(exit.thread(),exit.location(),"return",null);
+                            if(trace.size()>before)((Map<String,Object>)trace.get(trace.size()-1)).put("return_kind",exit.returnValue() instanceof VoidValue?"void":"value");
                             if(trace.size()>before && !(exit.returnValue() instanceof VoidValue)){
                                 Map<String,Object> current=(Map<String,Object>)trace.get(trace.size()-1);
+                                current.put("return_kind",exit.returnValue() instanceof VoidValue?"void":"value");
                                 List<Object> frames=(List<Object>)current.get("stack_to_render");
                                 if(!frames.isEmpty()){
                                     int previousBytes=Json.write(current).getBytes(StandardCharsets.UTF_8).length;
@@ -170,7 +172,7 @@ public final class VizTrace {
     static final class Snapshot {
         Map<String,Object> heap=map();int values;
         Object value(Value value,int depth){
-            if(++values>10000 || depth>12)return "…";
+            if(++values>10000 || depth>12)return List.of("IMPORTED_FAUX_PRIMITIVE","<snapshot limit>");
             if(value==null)return null;
             if(value instanceof StringReference s){
                 Field storage=s.referenceType().fieldByName("value");
@@ -182,8 +184,9 @@ public final class VizTrace {
             if(value instanceof PrimitiveValue p){if(p instanceof FloatValue || p instanceof DoubleValue){double d=p.doubleValue();return Double.isFinite(d)?d:List.of("SPECIAL_FLOAT",String.valueOf(d));}long integer=p.longValue();return integer>9007199254740991L || integer< -9007199254740991L?List.of("IMPORTED_FAUX_PRIMITIVE",Long.toString(integer)):integer;}
             if(value instanceof ObjectReference object){
                 long id=object.uniqueID();String key=Long.toString(id);
+                if(!heap.containsKey(key) && heap.size()>=300)return List.of("IMPORTED_FAUX_PRIMITIVE","<object limit>");
                 if(!heap.containsKey(key) && heap.size()<300){List<Object> encoded=new ArrayList<>();heap.put(key,encoded);
-                    if(object instanceof ArrayReference array){encoded.add("LIST");for(Value item:array.getValues(0,Math.min(200,array.length())))encoded.add(value(item,depth+1));}
+                    if(object instanceof ArrayReference array){encoded.add("LIST");for(Value item:array.getValues(0,Math.min(200,array.length())))encoded.add(value(item,depth+1));if(array.length()>200)encoded.add(List.of("IMPORTED_FAUX_PRIMITIVE","<truncated array>"));}
                     else if(object.referenceType().name().equals("java.util.ArrayList")){
                         encoded.add("LIST");Field dataField=object.referenceType().fieldByName("elementData"),sizeField=object.referenceType().fieldByName("size");
                         if(dataField!=null && sizeField!=null && object.getValue(dataField) instanceof ArrayReference array && object.getValue(sizeField) instanceof IntegerValue size)

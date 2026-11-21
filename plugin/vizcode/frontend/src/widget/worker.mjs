@@ -1,21 +1,18 @@
-import { loadPyodide } from './pyodide/pyodide.mjs';
-
 let runtime;
 let language = 'python3';
-let cppTracer;
+let adapter;
+let activeJob;
+let cancelled=false;
 self.onmessage = async event => {
     const { type, id, payload } = event.data;
+    if(type==='cancel'){cancelled=true;if(activeJob){await fetch(new URL('../v1/traces/'+activeJob.id,import.meta.url),{method:'DELETE',headers:{Authorization:'Bearer '+activeJob.token}}).catch(()=>{});self.postMessage({type:'cancelled'});}return;}
     try {
         if (type === 'initialize') {
             language = event.data.language || 'python3';
-            if(!['python3','cpp','java'].includes(language))throw new Error('Unsupported language');
-            if (language === 'java') { self.postMessage({type:'ready',id}); return; }
-            if (language === 'cpp') {
-                cppTracer = await import('./cpp/runner.mjs');
-                await cppTracer.prepare();
-                self.postMessage({ type: 'ready', id });
-                return;
-            }
+            adapter=event.data.adapter;
+            if(!adapter)throw Error('Adapter is not registered');
+            if(adapter.transport!=='browser'){self.postMessage({type:'ready',id});return;}
+            const {loadPyodide}=await import('./pyodide/pyodide.mjs');
             runtime = await loadPyodide({ indexURL: new URL('./pyodide/', import.meta.url).href });
             runtime.FS.mkdir('/home/pyodide/optlite');
             for (const name of ['__init__.py', '_version.py', 'pg_logger.py', 'pg_encoder.py']) {
@@ -25,15 +22,22 @@ self.onmessage = async event => {
             }
             self.postMessage({ type: 'ready', id });
         } else if (type === 'execute') {
-            if(language==='java') {
-                const response=await fetch(new URL('../java/trace',import.meta.url),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+payload.javaTicket},body:JSON.stringify(payload)});
-                const result=await response.json();if(!response.ok)throw new Error(result.error || 'Java debugging unavailable.');
-                self.postMessage({type:'result',id,payload:JSON.stringify(result)});return;
+            const {fromLegacy,toLegacy}=await import('./protocol.mjs');
+            if(adapter.transport!=='browser'){
+                const {traceTicket,...request}=payload;
+                const response=await fetch(new URL('../v1/'+(request.operation==='discover'?'discover':'traces'),import.meta.url),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+traceTicket},body:JSON.stringify(request)});
+                const job=await response.json();if(!response.ok)throw Error(job.error||'Tracing unavailable');activeJob=job;if(cancelled){await fetch(new URL('../v1/traces/'+job.id,import.meta.url),{method:'DELETE',headers:{Authorization:'Bearer '+job.token}}).catch(()=>{});self.postMessage({type:'cancelled'});return;}self.postMessage({type:'job',id,payload:job});
+                const deadline=Date.now()+60000;
+                try{while(Date.now()<deadline){
+                    await new Promise(resolve=>setTimeout(resolve,100));if(cancelled)return;
+                    const status=await fetch(new URL('../v1/traces/'+job.id,import.meta.url),{headers:{Authorization:'Bearer '+job.token}}).then(r=>r.json());
+                    if(status.status==='complete'){const result=request.operation==='discover'?status.result:toLegacy(status.result);if(request.operation!=='discover')result.code=request.code+'\n'+(adapter.legacySeparator || '// Scratch (local only)')+'\n'+request.scratchCode;self.postMessage({type:'result',id,payload:JSON.stringify(result)});return;}
+                    if(status.error)throw Error(status.error);
+                }throw Error('Tracing timed out');}finally{activeJob=undefined;}
             }
             if (payload.diagnose) {
                 let message='';
-                if (language==='cpp') message=await cppTracer.diagnoseCpp(payload);
-                else {
+                {
                     runtime.globals.set('__viz_diagnostic_source',payload.code);
                     message=runtime.runPython(`import ast
 try:
@@ -49,14 +53,9 @@ __viz_diagnostic_message`);
 
             if (payload.functions) {
                 const {buildCalls} = await import('./function-discovery.mjs');
-                payload.scratchCode = buildCalls(payload.code, language, payload.functions).source;
+                payload.scratchCode = buildCalls(payload.code, adapter.discovery || language, payload.functions).source;
             }
 
-            if (language === 'cpp') {
-                const result = await cppTracer.traceCpp(payload, () => self.postMessage({ type: 'compiled', id }));
-                self.postMessage({ type: 'result', id, payload: result });
-                return;
-            }
             runtime.globals.set('request_json', JSON.stringify(payload));
             const result = runtime.runPython(`helper_namespace = {'__name__': 'optmentor_runtime', 'request_json': request_json}
 exec(compile(${JSON.stringify(`
@@ -159,7 +158,10 @@ finally:
 result_json = logger.finalize()
 `)}, '<optmentor-runtime>', 'exec'), helper_namespace)
 helper_namespace['result_json']`);
-            self.postMessage({ type: 'result', id, payload: result });
+            const document=fromLegacy(JSON.parse(result));document.code=payload.code;
+            document.sources={answer:payload.code,calls:payload.scratchCode};
+            const normalized=toLegacy(document);normalized.code=payload.code+'\n# Scratch (local only)\n'+payload.scratchCode;
+            self.postMessage({ type: 'result', id, payload: JSON.stringify(normalized) });
         }
     } catch (error) {
         self.postMessage({ type: 'error', id, payload: String(error.message).slice(0, 4096) });

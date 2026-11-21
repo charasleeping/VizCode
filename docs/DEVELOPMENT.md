@@ -14,13 +14,12 @@ cd vizcode
 npm ci --prefix plugin/vizcode/frontend
 npm ci --prefix harness
 node harness/scripts/bootstrap.mjs
-node harness/scripts/bootstrap-cpp.mjs
 node harness/scripts/build-vizcode.mjs
 ```
 
 The first bootstrap verifies/downloads the pinned Moodle, CodeRunner and adaptive
-behaviour checkouts. The C++ bootstrap downloads checksum-verified compiler and
-library assets. The build creates editor/runtime bundles. Start the local Moodle
+behaviour checkouts. The build creates editor/runtime bundles; native debugger images are built by
+the demo installer. Start the local Moodle
 demo directly from source:
 
 ```sh
@@ -72,6 +71,11 @@ Run from the repository root after building and starting the CodeRunner fixture:
 php harness/tests/compiler-recovery.php
 python3 harness/tests/bridge.py
 node harness/tests/functions.mjs
+node harness/tests/adapters.mjs
+node harness/tests/trace-schema.mjs
+python3 harness/tests/native-cpp.py
+python3 harness/tests/python-objects.py
+python3 harness/tests/dap.py
 python3 harness/tests/java-tracing.py
 sh harness/compose.sh -f harness/coderunner-fixture/compose.yaml exec -T --user www-data moodle php /fixture/runtime-test.php
 sh harness/compose.sh -f harness/coderunner-fixture/compose.yaml exec -T --user www-data moodle php /fixture/compiler-test.php
@@ -79,7 +83,7 @@ sh harness/compose.sh -f harness/coderunner-fixture/compose.yaml exec -T --user 
 sh harness/compose.sh -f harness/coderunner-fixture/compose.yaml exec -T --user www-data moodle php /fixture/backup-test.php
 cd harness
 npx playwright install chromium firefox webkit
-npx playwright test coderunner.spec.js breakpoints.spec.js connectors.spec.js clean-input.spec.js step-polish.spec.js visualizer-polish.spec.js functions.spec.js fallback.spec.js
+npx playwright test adapters.spec.js coderunner.spec.js breakpoints.spec.js connectors.spec.js clean-input.spec.js step-polish.spec.js visualizer-polish.spec.js functions.spec.js fallback.spec.js
 ```
 
 Playwright launches the standalone harness when needed. Its WebKit checks are not
@@ -95,7 +99,13 @@ the matching source and build the ZIP:
 python3 harness/scripts/release-bundle.py
 ```
 
-The result is `dist/vizcode-1.0.0-beta.2-bundle.zip`. `COMMIT` and `source.tar.gz`
+The result is `dist/vizcode-<plugin release>-bundle.zip`. `COMMIT` and `source.tar.gz`
 identify its source; `SHA256SUMS` covers its contents. Generated assets, secrets,
 upstream checkouts, local data and test output stay out of Git. Publish the bundle
 as a GitHub release asset rather than committing its large runtime binaries.
+
+## Adapter development
+
+See [Adapters and API](ADAPTERS.md) for the JSON contract, registry configuration,
+conformance examples and optional DAP profile. The demo installer builds the
+Python/C++/Java defaults; the debugpy example image is an optional separate build.

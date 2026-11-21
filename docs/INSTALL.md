@@ -40,24 +40,24 @@ Verify the bundle with `sha256sum -c SHA256SUMS` or an equivalent SHA-256 tool.
    cp .env.example .env
    chmod 600 .env
    python3 -c 'import secrets; print(secrets.token_hex(32))'
-   # Run twice: one value for VIZCODE_JAVA_KEY, another for VIZCODE_SUPERVISOR_KEY.
+   # Run twice: one value for VIZCODE_TRACE_KEY, another for VIZCODE_SUPERVISOR_KEY.
    # Edit .env: set the Moodle origin and both generated secrets before continuing.
-   docker compose build java-job
+   docker compose build java-job cpp-job
    docker compose up -d --build java-supervisor execution
    ```
 
-   For Compose v1, use `docker-compose`. Java runs in disposable containers; its
+   For Compose v1, use `docker-compose`. Java and native C++ run in disposable containers; its
    private supervisor requires access to the configured Docker socket. Keep that
    supervisor off public networks, ideally on a dedicated execution host. Neither
    Moodle nor the student-code container receives the Docker socket.
 4. Put HTTPS in front of the execution service's loopback port **4102**. Use a
    separate hostname, for example `execute.example.edu`, and proxy both `/live/`
-   and `/java/trace`. Keep the supervisor port private. Set the Moodle origin in
+   and `/v1/` (plus `/java/trace` during the compatibility period). Keep the supervisor port private. Set the Moodle origin in
    `VIZCODE_MOODLE_ORIGIN` so only the intended site may embed the broker.
 5. In **Site administration → Plugins → Local plugins → VizCode for CodeRunner**,
    set the broker URL, for example
-   `https://execute.example.edu/live/broker.html`, and set the Java signing key to
-   the same `VIZCODE_JAVA_KEY` value. The supervisor secret is never entered into
+   `https://execute.example.edu/live/broker.html`, and set the tracing signing key to
+   the same `VIZCODE_TRACE_KEY` value. The supervisor secret is never entered into
    Moodle or questions.
 6. Keep the existing CodeRunner Jobe settings. Ensure Python, C++ and Java 21
    are available. If a grader is needed, the bundle optionally supplies one:

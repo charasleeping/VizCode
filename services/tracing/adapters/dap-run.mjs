@@ -1,0 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// This runner belongs inside the administrator-installed, network-disabled image.
+import {readFile,mkdtemp,writeFile,rm} from 'node:fs/promises';import {join} from 'node:path';import {tmpdir} from 'node:os';import {runDap} from './dap.mjs';
+let input='';for await(const chunk of process.stdin){input+=chunk;if(Buffer.byteLength(input)>650000)throw Error('Request exceeds limit');}
+let dir;try{const request=JSON.parse(input);if(request.diagnose||request.discover)throw Error('Non-executing diagnostics/discovery are unsupported by this DAP profile');const profile=JSON.parse(await readFile(process.argv[2],'utf8'));dir=await mkdtemp(join(tmpdir(),'vizdap-'));const file=join(dir,'answer'+profile.extension);await writeFile(file,request.code);if(request.scratchCode?.trim())throw Error('Automatic function calls are unsupported by this DAP profile');if(request.stdin)throw Error('Input is unsupported by this DAP profile');console.log(JSON.stringify(await runDap(profile,request,file)));}catch(error){console.log(JSON.stringify({error:error.message}));}finally{if(dir)await rm(dir,{recursive:true,force:true});}

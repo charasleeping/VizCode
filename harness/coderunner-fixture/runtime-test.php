@@ -44,6 +44,14 @@ $u->process_action($slot,['answer'=>$good,'language'=>'python3','-submit'=>1]);e
 $u->process_action($slot,['answer'=>$good."\n# equal earned",'language'=>'python3','-submit'=>1]);$u->finish_all_questions();
 ensure(str_ends_with($u->get_question_attempt($slot)->get_last_qt_var('answer'),'# equal earned'),'Latest equal earned score did not win');
 echo "Prechecks, unchanged Checks and latest equal earned scores passed\n";
+[$u,$slot]=make_usage($q);$u->process_action($slot,['answer'=>$good,'language'=>'python3','-submit'=>1]);
+$tries=$u->get_question_attempt($slot)->get_last_behaviour_var('_try');
+$u->process_action($slot,['answer'=>$bad,'language'=>'python3']);
+$u->process_action($slot,['answer'=>$good,'language'=>'python3','-submit'=>1]);$qa=$u->get_question_attempt($slot);
+ensure($qa->get_state()===question_state::$complete,'Cached Check did not restore completion after an intervening draft');
+ensure($qa->get_last_qt_var('answer')===$good,'Cached Check left the intervening draft active');
+ensure($qa->get_last_behaviour_var('_try')===$tries,'Cached Check added another try/penalty');
+echo "Restoring a previously checked answer restores its completion and feedback without another try\n";
 $q->precheck=0;$q->allornothing=0;$second=clone $q->testcases[0];$second->testcode='print(print_factorial(3))';$second->expected='6';$second->useasexample=0;$q->testcases[]=$second;
 [$u,$slot]=make_usage($q);$u->process_action($slot,['answer'=>$good,'language'=>'python3','-submit'=>1]);
 $u->process_action($slot,['answer'=>'def print_factorial(n): return 120','language'=>'python3','-submit'=>1]);$u->finish_all_questions();

@@ -1,0 +1,4 @@
+[
+  {"id":"counter-example","version":"1.0.0","label":"Integer-sum example","languages":["counter"],"transport":"stdio","image":"vizcode-counter-job:1","command":["python3","/adapter.py"],"profiles":["auto"],"capabilities":{"frames":true,"objects":false,"identity":false,"returns":false,"input":false,"discovery":false}},
+  {"id":"python-debugpy","version":"1.0.0","label":"Python (DAP)","languages":["python3","python"],"transport":"dap","image":"vizcode-debugpy-job:1","command":["node","/opt/vizcode/dap-run.mjs","/opt/vizcode/debugpy-profile.json"],"profiles":["auto"],"editorMode":"python","renderer":"py3","capabilities":{"frames":true,"objects":true,"identity":false,"returns":false,"input":false,"discovery":false}}
+]

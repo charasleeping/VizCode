@@ -216,6 +216,7 @@ const boxSelect = rectangularSelection();
 // pythonVersionSelector only offers pyodide).
 function langExtension(mode: string): any {
   switch (mode) {
+    case "text": return [];
     case "python": return python();
     case "c_cpp": return cpp();
     case "java": return java();
