@@ -2,9 +2,10 @@
 define('CLI_SCRIPT',true);require('/var/www/html/config.php');$CFG->debug=DEBUG_DEVELOPER;$CFG->debugdisplay=1;
 require_once($CFG->libdir.'/questionlib.php');require_once($CFG->dirroot.'/question/type/coderunner/questiontype.php');
 \core\session\manager::set_user(get_admin());
+require_once(__DIR__.'/object-demos.php');
 function ensure($value,$message){if(!$value)throw new Exception($message);}
-foreach(['Python factorial','C++ factorial','Java factorial'] as $name){
- $id=$DB->get_field('question','id',['name'=>$name]);$q=question_bank::load_question($id);$q->start_attempt(new question_attempt_step(),1);
+foreach(['Python factorial','C++ object tracing','Java object tracing'] as $name){
+ $id=vizcode_demo_question_id($name);$q=question_bank::load_question($id);$q->start_attempt(new question_attempt_step(),1);
  $GLOBALS['local_vizcode_metrics']=[];[$fraction,$state]=$q->grade_response(['answer'=>$q->answer,'language'=>$q->language]);
  ensure((float)$fraction===1.0,$name.' failed: '.json_encode([$fraction,$state,$q->answer]));echo $name." native grading passed\n";
 }

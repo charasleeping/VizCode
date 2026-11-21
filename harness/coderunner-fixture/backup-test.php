@@ -3,10 +3,11 @@ define('CLI_SCRIPT',true);require('/var/www/html/config.php');require_once($CFG-
 require_once($CFG->dirroot.'/question/format/xml/format.php');require_once($CFG->libdir.'/testing/generator/lib.php');
 require_once($CFG->dirroot.'/backup/util/includes/backup_includes.php');require_once($CFG->dirroot.'/backup/util/includes/restore_includes.php');
 \core\session\manager::set_user(get_admin());
+require_once(__DIR__.'/object-demos.php');
 $course=$DB->get_record('course',['shortname'=>'VIZCODE_CR'], '*', MUST_EXIST);
-foreach(['Python factorial','C++ factorial','Java factorial'] as $name){
- $data=question_bank::load_question_data($DB->get_field('question','id',['name'=>$name]));$format=new qformat_xml();$xml=$format->writequestion($data);$roundtrip=$format->readquestions(['<quiz>'.$xml.'</quiz>']);
- if(count($roundtrip)!==1 || $roundtrip[0]->uiplugin!=='vizcode' || $roundtrip[0]->coderunnertype!==$data->options->coderunnertype)throw new Exception('XML round trip changed native configuration');
+foreach(['Python factorial','C++ object tracing','Java object tracing'] as $name){
+ $data=question_bank::load_question_data(vizcode_demo_question_id($name));$format=new qformat_xml();$xml=$format->writequestion($data);$roundtrip=$format->readquestions(['<quiz>'.$xml.'</quiz>']);
+ if(count($roundtrip)!==1 || $roundtrip[0]->uiplugin!=='vizcode' || $roundtrip[0]->coderunnertype!==$data->options->coderunnertype || $roundtrip[0]->answer!==$data->options->answer || $roundtrip[0]->answerpreload!==$data->options->answerpreload)throw new Exception('XML round trip changed native configuration');
 }
 echo "Three-language native XML round trips passed\n";
 $originaluis=$DB->get_fieldset_sql('SELECT opts.uiplugin FROM {question_coderunner_options} opts JOIN {question_versions} v ON v.questionid=opts.questionid JOIN {question_bank_entries} e ON e.id=v.questionbankentryid JOIN {question_categories} c ON c.id=e.questioncategoryid WHERE c.contextid=?',[context_course::instance($course->id)->id]);sort($originaluis);

@@ -203,7 +203,9 @@ Each groupmate runs their own instance; `localhost` always means their computer.
 2. Test Python, C++ and Java. Edit the preloaded answer (adding a comment is enough)
    before pressing Check; CodeRunner requires an edit to the preloaded answer.
 3. Select the factorial function row, enter `5` and step through execution. Inspect
-   Frames and Objects. At a C++ function return, inspect the `__return__` value.
+   Frames and Objects. The C++ demo shows a shared object and a separate copy;
+   Java shows shared object/array references and an instance-method frame. Inspect
+   `__return__` when either factorial function returns.
 4. Set a breakpoint beside a line number. Try Left/Right and Shift+Left/Right
    outside the editor. Click or drag the line numbers to select whole lines.
 5. Press Check. Verify results update without navigation. Change the function to
@@ -214,7 +216,10 @@ Each groupmate runs their own instance; `localhost` always means their computer.
 7. Log in as teacher to inspect questions in the Question bank. The UI plugin is
    already set to VizCode; tests and grading remain native CodeRunner settings.
 
-[Copy-ready examples](TEAM-EXAMPLES.md) include the three function answers,
+After updating the demo, start a new quiz attempt to see the revised questions.
+Attempts already in progress retain their original question versions.
+
+[Copy-ready examples](TEAM-EXAMPLES.md) include the three answers,
 complete multilingual programs and an interactive-input exercise. See
 [Usage](USAGE.md) for all debugger controls.
 

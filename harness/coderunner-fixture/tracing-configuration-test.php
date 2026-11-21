@@ -3,7 +3,8 @@
 define('CLI_SCRIPT',true);require('/var/www/html/config.php');require_once($CFG->libdir.'/questionlib.php');
 require_once($CFG->dirroot.'/question/type/coderunner/questiontype.php');
 \core\session\manager::set_user(get_admin());
-$question=question_bank::load_question($DB->get_field('question','id',['name'=>'Java factorial'],MUST_EXIST));
+require_once(__DIR__.'/object-demos.php');
+$question=question_bank::load_question(vizcode_demo_question_id('Java object tracing'));
 $usage=question_engine::make_questions_usage_by_activity('core_question_preview',context_system::instance());
 $usage->set_preferred_behaviour('adaptive');$slot=$usage->add_question($question);$usage->start_all_questions();question_engine::save_questions_usage_by_activity($usage);
 // Forced settings apply to this PHP process only. Live browser keys are untouched.

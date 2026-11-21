@@ -10,6 +10,11 @@ async function openQuiz(page,name){
  await launch.waitFor({state:'visible'});await launch.click();
  const confirm=page.getByRole('button',{name:'Start attempt',exact:true});if(await confirm.count())await confirm.click();
 }
+async function javaDemoSource(question,method){
+ // Existing attempts retain the old Java method question; new attempts use a class.
+ return await question.getByText('Shared references, an array and a method call',{exact:true}).count()
+  ? 'class FactorialDemo {\n'+method+'\n}' : method;
+}
 async function attempt(page){
  await login(page);await openQuiz(page,'VizCode CodeRunner quiz');
  await expect(page.locator('.vizcode-widget')).toHaveCount(3,{timeout:60000});
@@ -72,12 +77,12 @@ test('native changed-answer warning follows the latest Check and preserves newer
 test('Java methods trace through the same function rows and output panel',async({page})=>{
  test.setTimeout(180000);await attempt(page);const question=page.locator('.que').filter({has:page.locator('[data-vizcode]')}).nth(2);
  // Attempts survive repeated test runs; do not assume the previous run left a method fragment.
- await question.getByRole('textbox',{name:'Answer source',exact:true}).fill('static int print_factorial(int n) { return n < 2 ? 1 : n * print_factorial(n-1); }');
+ await question.getByRole('textbox',{name:'Answer source',exact:true}).fill(await javaDemoSource(question,'static int print_factorial(int n) { return n < 2 ? 1 : n * print_factorial(n-1); }'));
  const row=question.locator('.vizcode-function-row').first();await expect(row).toBeVisible();await row.getByRole('textbox').fill('5');await row.getByRole('checkbox').check();
  await expect(question.locator('.vizcode-status')).toHaveAttribute('aria-label','Ready',{timeout:90000});
  await finishTrace(question);await expect(question.locator('.ExecutionVisualizer')).toBeVisible();
  await expect(question.locator('.vizcode-error')).toHaveText('');
- const editor=question.getByRole('textbox',{name:'Answer source',exact:true});await editor.fill('static int print_factorial(int n) { System.out.println(n); return n < 2 ? 1 : n * print_factorial(n-1); }\n// refresh '+Date.now());
+ const editor=question.getByRole('textbox',{name:'Answer source',exact:true});await editor.fill(await javaDemoSource(question,'static int print_factorial(int n) { System.out.println(n); return n < 2 ? 1 : n * print_factorial(n-1); }\n// refresh '+Date.now()));
  await expect(question.locator('.vizcode-status')).toHaveAttribute('aria-label','Ready',{timeout:90000});await finishTrace(question);
  await expect(question.locator('.vizcode-output')).toContainText('5');
  const response=page.waitForResponse(r=>r.url().includes('local_vizcode_check'));await question.locator('[name$="-submit"]').click();await response;
@@ -121,6 +126,7 @@ test('all three checked responses remain complete on the attempt summary',async(
  'int print_factorial(int n) {\n\n return n < 2 ? 1 : n * print_factorial(n-1); }',
  'static int print_factorial(int n) {\n\n return n < 2 ? 1 : n * print_factorial(n-1); }'];
  const questions=page.locator('.que').filter({has:page.locator('[data-vizcode]')});
+ sources[2]=await javaDemoSource(questions.nth(2),sources[2]);
  for(let i=0;i<3;i++){
   const q=questions.nth(i);await q.getByRole('textbox',{name:'Answer source',exact:true}).fill(sources[i]);
   const response=page.waitForResponse(r=>r.url().includes('local_vizcode_check'));

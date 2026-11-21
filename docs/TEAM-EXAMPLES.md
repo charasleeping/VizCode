@@ -16,28 +16,80 @@ def print_factorial(n):
     return result
 ```
 
-### C++
+### C++ — shared object and independent copy
+
+The C++ question is named “C++ object tracing”. Enter `5` in the function row,
+tick it, then step to the loop. `state`, `worker` and `observer` refer to the same
+object; `snapshot` is a separate value copy whose total stays `1`.
 
 ```cpp
+struct FactorialState {
+    int input;
+    int total;
+};
+
 int print_factorial(int n) {
-    int result = 1;
-    for (int i = 2; i <= n; ++i) result *= i;
-    return result;
+    FactorialState state{n, 1};
+    FactorialState snapshot = state;
+    FactorialState* worker = &state;
+    FactorialState* observer = &state;
+
+    for (int factor = 2; factor <= snapshot.input; ++factor) {
+        worker->total *= factor;
+    }
+
+    return observer->total;
 }
 ```
 
-### Java
+Set a breakpoint on `worker->total *= factor;` to inspect the objects before the
+function returns. These are local objects, displayed in Objects without using
+`new`. The original total reaches `120`; the copy keeps `1`.
+
+### Java — object references, arrays and instance-method frames
+
+The Java question is named “Java object tracing” and uses CodeRunner's Java
+class format. Enter `5` beside `FactorialDemo.print_factorial` and tick it.
 
 ```java
-static int print_factorial(int n) {
-    int result = 1;
-    for (int i = 2; i <= n; ++i) result *= i;
-    return result;
+class FactorialDemo {
+    static class FactorialState {
+        int total = 1;
+        int[] products;
+
+        FactorialState(int count) {
+            products = new int[count];
+        }
+
+        void multiply(int factor) {
+            total *= factor;
+            products[factor - 2] = total;
+        }
+    }
+
+    static int print_factorial(int n) {
+        FactorialState state = new FactorialState(Math.max(0, n - 1));
+        FactorialState observer = state;
+        int[] history = state.products;
+
+        for (int factor = 2; factor <= n; factor++) {
+            state.multiply(factor);
+        }
+
+        return observer.total;
+    }
 }
 ```
 
+Set a breakpoint on `state.multiply(factor);`, then step into the method.
+`state`, `observer` and the method's `this` refer to one object. `history` and
+`state.products` refer to one array: its zeroes become `[2, 6, 24, 120]`.
+Watch the extra call frame appear and the final return value become `120`.
+Trying `0` produces an empty array and returns `1`.
+
 Each should pass the prepared factorial test. To demonstrate failure, replace the
-function body with `return 0` (and a semicolon for C++/Java), then Check again.
+`print_factorial` body with `return 0` (and a semicolon for C++/Java), then
+Check again.
 
 ## Multilingual question
 

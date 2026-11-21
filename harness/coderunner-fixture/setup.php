@@ -24,14 +24,23 @@ $category=question_get_default_category($context->id);
 if(!$category){$top=question_get_top_category($context->id,true);$category=(object)['contextid'=>$context->id,'parent'=>$top->id,'name'=>'VizCode','info'=>'','infoformat'=>FORMAT_HTML,'stamp'=>make_unique_id_code(),'sortorder'=>1];$category->id=$DB->insert_record('question_categories',$category);}
 set_config('curlsecurityblockedhosts','');
 $qtype=question_bank::get_qtype('coderunner');
+require_once(__DIR__.'/object-demos.php');$cppdemo=vizcode_cpp_object_demo_definition();$javademo=vizcode_java_object_demo_definition();
 $definitions=[
  ['Python factorial','python3','def print_factorial(n):\n    return 1 if n < 2 else n * print_factorial(n - 1)\n','print(print_factorial(5))','120'],
- ['C++ factorial','cpp_function','int print_factorial(int n) { return n < 2 ? 1 : n * print_factorial(n-1); }','cout << print_factorial(5) << endl;','120'],
- ['Java factorial','java_method','static int print_factorial(int n) { return n < 2 ? 1 : n * print_factorial(n-1); }','System.out.println(print_factorial(5));','120']
+ $cppdemo,
+ $javademo
 ];
 foreach($definitions as [$name,$type,$preload,$test,$expected]){
- if($existing=$DB->get_record('question',['name'=>$name])){
+ $matches=$DB->get_records_sql('SELECT q.* FROM {question} q JOIN {question_versions} v ON v.questionid=q.id JOIN {question_bank_entries} e ON e.id=v.questionbankentryid WHERE q.name=? AND e.questioncategoryid=? ORDER BY v.version DESC',[$name,$category->id],0,1);
+ if($existing=$matches ? reset($matches) : null){
   $DB->set_field('question_coderunner_options','templateparams','{}',['questionid'=>$existing->id]);question_bank::notify_question_edited($existing->id);continue;
+ }
+ if($name===$cppdemo[0] || $name===$javademo[0]){
+  $demo=$name===$cppdemo[0] ? $cppdemo : $javademo;
+  $oldname=$name===$cppdemo[0] ? 'C++ factorial' : 'Java factorial';
+  $oldrows=$DB->get_records_sql('SELECT q.id FROM {question} q JOIN {question_versions} v ON v.questionid=q.id JOIN {question_bank_entries} e ON e.id=v.questionbankentryid WHERE q.name=? AND e.questioncategoryid=? ORDER BY v.version DESC',[$oldname,$category->id],0,1);
+  $old= $oldrows ? question_bank::load_question_data(reset($oldrows)->id) : null;
+  $saved=vizcode_save_object_demo($demo,$category,$context,$old);echo 'Prepared '.$name.' question '.$saved->id."\n";continue;
  }
  $form=(object)['category'=>$category->id.','.$context->id,'context'=>$context,'name'=>$name,'questiontext'=>['text'=>'Define a function print_factorial that returns the factorial of its argument.','format'=>FORMAT_HTML],
  'generalfeedback'=>['text'=>'','format'=>FORMAT_HTML],'defaultmark'=>1,'penalty'=>0,'qtype'=>'coderunner','coderunnertype'=>$type,'prototypetype'=>0,'allornothing'=>1,'penaltyregime'=>'0, 10, 20, ...',
@@ -46,7 +55,7 @@ $generator=new testing_data_generator();
 $quiz=$DB->get_record('quiz',['course'=>$course->id,'name'=>'VizCode CodeRunner quiz']);
 if(!$quiz){
  $quiz=$generator->get_plugin_generator('mod_quiz')->create_instance(['course'=>$course->id,'name'=>'VizCode CodeRunner quiz','preferredbehaviour'=>'adaptive','questionsperpage'=>0]);
- foreach($definitions as [$name]){$q=$DB->get_record('question',['qtype'=>'coderunner','name'=>$name]);quiz_add_quiz_question($q->id,$quiz);}
+ foreach($definitions as [$name]){quiz_add_quiz_question(vizcode_demo_question_id($name),$quiz);}
 }
 \mod_quiz\quiz_settings::create($quiz->id)->get_grade_calculator()->recompute_quiz_sumgrades();
 $cm=get_coursemodule_from_instance('quiz',$quiz->id,$course->id);
