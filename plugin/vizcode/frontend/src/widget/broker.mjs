@@ -116,6 +116,10 @@ window.addEventListener('message', event => {
             typeof row.checked !== 'boolean' || !Array.isArray(row.args) || row.args.some(arg=>typeof arg !== 'string')) ||
         JSON.stringify(request.functions).length > 500000)) {send('error',message.id,'Invalid function selections');return;}
     if (request.packages !== undefined) { send('error',message.id,'Trace package uploads are not supported'); return; }
+    if(forLanguage(nextLanguage).transport!=='browser' &&
+        !['adapterId','adapterVersion','sourceProfile'].every(key=>typeof request[key]==='string'&&request[key])) {
+        send('error',message.id,'The editor and debugger versions do not match. Reload this page to update VizCode.');return;
+    }
     if (active) cancel(active.id);
     queued = message;
     prepare();

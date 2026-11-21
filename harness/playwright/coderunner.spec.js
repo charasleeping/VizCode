@@ -6,13 +6,34 @@ async function login(page,user='student_'+test.info().project.name,password='Loc
 }
 async function openQuiz(page,name){
  await page.goto(base+'/course/view.php?id=2');await page.getByRole('link',{name:new RegExp(name)}).first().click();
- const resume=page.getByRole('button',{name:/Continue your attempt/});if(await resume.count())await resume.click();else await page.getByRole('button',{name:/Attempt quiz|Re-attempt quiz/}).click();
+ const launch=page.getByRole('button',{name:/Continue your attempt|Attempt quiz|Re-attempt quiz/}).first();
+ await launch.waitFor({state:'visible'});await launch.click();
  const confirm=page.getByRole('button',{name:'Start attempt',exact:true});if(await confirm.count())await confirm.click();
 }
 async function attempt(page){
  await login(page);await openQuiz(page,'VizCode CodeRunner quiz');
  await expect(page.locator('.vizcode-widget')).toHaveCount(3,{timeout:60000});
 }
+test('cached pre-adapter editor is replaced and native language tracing stays available',async({page})=>{
+ test.setTimeout(180000);
+ await page.addInitScript(()=>{window.VizCode={create(){throw Error('An obsolete editor was reused');}};});
+ const loads=[];let unversioned=0;
+ await page.route('**/local/vizcode/assets/widget.js*',async route=>{
+  const url=new URL(route.request().url());loads.push(url);
+  if(!url.searchParams.has('v')){unversioned++;return route.fulfill({contentType:'text/javascript',body:'window.VizCode={create:function(){throw Error("An obsolete editor was loaded")}};'});}
+  return route.continue();
+ });
+ await attempt(page);expect(await page.evaluate(()=>window.VizCode.adapterProtocolVersion)).toBe(1);
+ expect(loads.length).toBeGreaterThan(0);expect(unversioned).toBe(0);
+ const revision=await page.evaluate(()=>String(M.cfg.jsrev));expect(loads.every(url=>url.searchParams.get('v')===revision)).toBe(true);
+ const questions=page.locator('.que').filter({has:page.locator('[data-vizcode]')});
+ for(const [slot,source] of [[1,'int print_factorial(int n){return n<2?1:n*print_factorial(n-1);}'],[2,'static int print_factorial(int n){return n<2?1:n*print_factorial(n-1);}']]){
+  const q=questions.nth(slot);await q.getByRole('textbox',{name:'Answer source',exact:true}).fill(source);
+  const row=q.locator('.vizcode-function-row').first();await row.getByRole('textbox').fill('5');await row.getByRole('checkbox').check();
+  await expect.poll(()=>q.locator('textarea[data-vizcode]').evaluate(el=>el.vizcodeWidget?.visualization?.curTrace?.filter(t=>t.event==='return').map(t=>t.stack_to_render.at(-1)?.encoded_locals.__return__)||[]),{timeout:90000}).toContain(120);
+  await expect(q.locator('.vizcode-error')).toHaveText('');
+ }
+});
 test('teacher can apply Question Bank category filters without malformed JSON',async({page})=>{
  await login(page,'teacher','LocalTeacherOnly1!');await page.goto(base+'/question/edit.php?courseid=2');
  await page.waitForFunction(()=>window.M?.util?.pending_js?.length===0);

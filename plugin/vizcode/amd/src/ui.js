@@ -2,13 +2,16 @@
 // CodeRunner UI contract: native textarea contents remain the graded response.
 define(['core/ajax','core/str','qtype_coderunner/showdiff'], function(Ajax,Str,ShowDiff) {
     let bundle;
+    const adapterProtocolVersion=1;
+    const currentAPI=()=>window.VizCode?.adapterProtocolVersion===adapterProtocolVersion;
+    const assetURL=name=>M.cfg.wwwroot+'/local/vizcode/'+name+'?v='+encodeURIComponent(String(M.cfg.jsrev || 0));
     const labels={python3:'Python',cpp:'C++',java:'Java'};
     const normalize=value=>({python:'python3','c++':'cpp',c_cpp:'cpp'})[String(value).toLowerCase()] || String(value).toLowerCase();
     function load() {
-        if(window.VizCode)return Promise.resolve(window.VizCode);
+        if(currentAPI())return Promise.resolve(window.VizCode);
         if(!bundle)bundle=new Promise((resolve,reject)=>{
-            const script=document.createElement('script');script.src=M.cfg.wwwroot+'/local/vizcode/assets/widget.js';
-            script.onload=()=>window.VizCode?resolve(window.VizCode):reject(Error('Editor unavailable'));
+            const script=document.createElement('script');script.src=assetURL('assets/widget.js');
+            script.onload=()=>currentAPI()?resolve(window.VizCode):reject(Error('The editor version is out of date. Reload this page to update VizCode.'));
             script.onerror=()=>reject(Error('Editor unavailable'));document.head.append(script);
         }).catch(error=>{bundle=undefined;throw error;});
         return bundle;
@@ -28,7 +31,7 @@ define(['core/ajax','core/str','qtype_coderunner/showdiff'], function(Ajax,Str,S
         this.api=await load();
         if(!this.config.brokerUrl)this.config={...this.config,...await Ajax.call([{methodname:'local_vizcode_configuration',args:{}}])[0]};
         if(!document.querySelector('link[data-vizcode-style]')){
-            const style=document.createElement('link');style.rel='stylesheet';style.href=M.cfg.wwwroot+'/local/vizcode/styles.css';style.dataset.vizcodeStyle='1';document.head.append(style);
+            const style=document.createElement('link');style.rel='stylesheet';style.href=assetURL('styles.css');style.dataset.vizcodeStyle='1';document.head.append(style);
         }
     };
     UI.prototype.postInsert=function(wrapper) {

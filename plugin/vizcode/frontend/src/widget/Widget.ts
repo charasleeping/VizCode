@@ -493,4 +493,6 @@ export class Widget {
         this.root?.remove();
     }
 }
+// Moodle must not reuse a cached widget from before the adapter protocol.
+export const adapterProtocolVersion=1;
 export function create(config: Config) { return new Widget(config); }

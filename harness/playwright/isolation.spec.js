@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+test('old editor requests receive a reload message without launching a tracing job',async({page})=>{
+ let jobs=0;page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/v1/traces'))jobs++;});
+ await page.goto('/live.html?noautotrace');
+ const error=await page.evaluate(()=>new Promise((resolve,reject)=>{
+  const instance=crypto.randomUUID(),frame=document.createElement('iframe'),origin='http://127.0.0.1:4104';
+  const timer=setTimeout(()=>{cleanup();reject(Error('Broker protocol probe timed out'));},10000);
+  const cleanup=()=>{clearTimeout(timer);window.removeEventListener('message',listener);frame.remove();};
+  const listener=event=>{
+   if(event.origin!==origin||event.source!==frame.contentWindow||event.data.instance!==instance)return;
+   if(event.data.type==='ready')frame.contentWindow.postMessage({version:1,instance,type:'execute',id:'legacy',payload:{language:'cpp',code:'int f(){return 1;}',scratchCode:'',stdin:''}},origin);
+   if(event.data.type==='error'){cleanup();resolve(event.data.payload);}
+  };
+  window.addEventListener('message',listener);frame.src=origin+'/live/broker.html#'+new URLSearchParams({host:location.origin,instance});document.body.append(frame);
+ }));
+ expect(error).toContain('Reload this page');expect(jobs).toBe(0);
+});
+
 test('worker CSP blocks authenticated-origin requests and child workers', async ({ page, context }) => {
     await context.addCookies([{ name: 'MoodleSession', value: 'fixture', url: 'http://localhost:4100' }]);
     await page.goto('/');

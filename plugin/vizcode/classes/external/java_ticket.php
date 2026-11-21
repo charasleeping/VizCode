@@ -12,7 +12,7 @@ class java_ticket extends \core_external\external_api {
         $question=$usage->get_question_attempt($slot)->get_question();
         $languages=empty($question->acelang)?[$question->language]:\qtype_coderunner_util::extract_languages($question->acelang)[0];
         if (!in_array('java',array_map('strtolower',$languages),true)) throw new \invalid_parameter_exception('Java is not supported by this question.');
-        $key=(string)get_config('local_vizcode','javakey');
+        $key=(string)(get_config('local_vizcode','javakey')?:get_config('local_vizcode','tracekey'));
         if (strlen($key)<32 || !preg_match('/^[a-f0-9]{64}$/D',$sourcehash)) throw new \invalid_parameter_exception('Java tracing is not configured.');
         $encode=fn($s)=>rtrim(strtr(base64_encode($s),'+/','-_'),'=');
         $body=$encode(json_encode(['exp'=>time()+120,'nonce'=>bin2hex(random_bytes(16)),'user'=>(int)$USER->id,'hash'=>$sourcehash],JSON_THROW_ON_ERROR));

@@ -5,7 +5,7 @@ export async function javaTrace(req,res){
  res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST'){res.writeHead(405);res.end(JSON.stringify({error:'POST required.'}));return;}
  try{
-  const secret=process.env.VIZCODE_JAVA_KEY || '';if(secret.length<32)throw Error('Java tracing is not configured.');
+  const secret=process.env.VIZCODE_JAVA_KEY || process.env.VIZCODE_TRACE_KEY || '';if(secret.length<32)throw Error('Java tracing is not configured.');
   let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>650000)throw Error('Trace request exceeds limit.');}
   const payload=JSON.parse(raw);const {javaTicket,...request}=payload;const token=String(req.headers.authorization || '').replace(/^Bearer /,'');
   if(token!==javaTicket)throw Error('Invalid Java trace ticket.');const [body,signature,...extra]=token.split('.');
